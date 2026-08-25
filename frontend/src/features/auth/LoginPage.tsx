@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { useAuthStore } from '../../stores/authStore'
 import { ApiError } from '../../lib/apiClient'
+import { AuthLayout } from './AuthLayout'
 import { login } from './api'
 
 const schema = z.object({
@@ -33,54 +34,90 @@ export function LoginPage() {
   })
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <form
-        onSubmit={handleSubmit((values) => mutation.mutate(values))}
-        className="w-full max-w-sm space-y-4 rounded-lg border border-slate-200 p-6 dark:border-slate-800"
-      >
-        <h1 className="text-xl font-semibold">Entrar</h1>
+    <AuthLayout>
+      <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Bem-vindo de volta</h1>
+      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Entre para continuar controlando seus gastos.</p>
 
+      <form onSubmit={handleSubmit((values) => mutation.mutate(values))} className="mt-8 space-y-5" noValidate>
         <div>
-          <label className="block text-sm font-medium">E-mail</label>
+          <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+            E-mail
+          </label>
           <input
+            id="email"
             type="email"
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
+            autoComplete="email"
+            aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? 'email-error' : undefined}
+            className="mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+            placeholder="voce@exemplo.com"
             {...registerField('email')}
           />
-          {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
+          {errors.email && (
+            <p id="email-error" className="mt-1.5 text-sm text-red-600 dark:text-red-400">
+              {errors.email.message}
+            </p>
+          )}
         </div>
 
         <div>
-          <label className="block text-sm font-medium">Senha</label>
+          <div className="flex items-center justify-between">
+            <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+              Senha
+            </label>
+          </div>
           <input
+            id="password"
             type="password"
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
+            autoComplete="current-password"
+            aria-invalid={!!errors.password}
+            aria-describedby={errors.password ? 'password-error' : undefined}
+            className="mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+            placeholder="••••••••"
             {...registerField('password')}
           />
-          {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>}
+          {errors.password && (
+            <p id="password-error" className="mt-1.5 text-sm text-red-600 dark:text-red-400">
+              {errors.password.message}
+            </p>
+          )}
         </div>
 
         {mutation.isError && (
-          <p className="text-sm text-red-600">
-            {mutation.error instanceof ApiError ? mutation.error.message : 'Falha ao entrar'}
-          </p>
+          <div
+            role="alert"
+            className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-300"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span>{mutation.error instanceof ApiError ? mutation.error.message : 'Não foi possível entrar. Tente novamente.'}</span>
+          </div>
         )}
 
         <button
           type="submit"
           disabled={mutation.isPending}
-          className="w-full rounded bg-slate-900 px-3 py-2 text-white disabled:opacity-50 dark:bg-slate-50 dark:text-slate-900"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 font-medium text-white shadow-sm shadow-indigo-600/20 transition hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500/50 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:focus:ring-offset-slate-950"
         >
+          {mutation.isPending && (
+            <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+            </svg>
+          )}
           {mutation.isPending ? 'Entrando…' : 'Entrar'}
         </button>
-
-        <p className="text-sm">
-          Não tem conta?{' '}
-          <Link to="/registrar" className="underline">
-            Criar conta da família
-          </Link>
-        </p>
       </form>
-    </div>
+
+      <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-400">
+        Não tem conta?{' '}
+        <Link to="/registrar" className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
+          Criar conta da família
+        </Link>
+      </p>
+    </AuthLayout>
   )
 }
