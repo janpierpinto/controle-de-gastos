@@ -40,6 +40,12 @@ app:
     refresh-token-ttl-days: ${JWT_REFRESH_TTL_DAYS:30}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  push:
+    # Chaves de desenvolvimento local, geradas para este projeto — nunca usar
+    # em produção. Gere um par novo por ambiente (ver infra/.env.example).
+    vapid-public-key: ${VAPID_PUBLIC_KEY:BKSB-t7Yqcy2t9_hngjy0c8rMsPP_lRQWWnXV8RkcW0l4jIif-Tn4qeMAHUtAsaI-tFXQ7MYe5A7m5GzmuyXkKo}
+    vapid-private-key: ${VAPID_PRIVATE_KEY:Rzyf4-UoQkTYFFXn2D69IqHxKM0OqHxOZ3g7m9T1iis}
+    subject: ${VAPID_SUBJECT:mailto:contato@controledegastos.local}
 
 logging:
   level:
