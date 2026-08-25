@@ -1,7 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { Badge } from '../../components/ui/Badge'
+import { Button } from '../../components/ui/Button'
+import { Card, CardBody, CardHeader } from '../../components/ui/Card'
+import { EmptyState } from '../../components/ui/EmptyState'
+import { Field } from '../../components/ui/Field'
+import { inputClass } from '../../components/ui/formStyles'
+import { PieChartIcon, PlusIcon, TrashIcon, XIcon } from '../../components/icons'
 import { currentMonthStart } from '../../lib/date'
 import { listCategories } from '../categories/api'
 import { createBudget, deleteBudget, listBudgets } from './api'
@@ -21,6 +29,7 @@ type FormValues = z.infer<typeof schema>
 export function BudgetsSection() {
   const month = currentMonthStart()
   const queryClient = useQueryClient()
+  const [showForm, setShowForm] = useState(false)
 
   const { data: categories } = useQuery({ queryKey: ['categories'], queryFn: listCategories })
   const { data: budgets, isLoading } = useQuery({ queryKey: ['budgets', month], queryFn: () => listBudgets(month) })
@@ -37,6 +46,7 @@ export function BudgetsSection() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['budgets', month] })
       reset({ categoryId: '', plannedAmount: '' })
+      setShowForm(false)
     },
   })
 
@@ -51,102 +61,120 @@ export function BudgetsSection() {
   const availableCategories = expenseCategories.filter((category) => !budgetedCategoryIds.has(category.id))
 
   return (
-    <section className="space-y-3">
-      <h2 className="text-lg font-semibold">Orçamentos do mês</h2>
-
-      {isLoading && <p className="text-sm text-slate-500">Carregando…</p>}
-
-      {budgets && budgets.length > 0 && (
-        <ul className="space-y-2">
-          {budgets.map((budget) => {
-            const barColor = budget.exceeded
-              ? 'bg-red-600'
-              : budget.alertTriggered
-                ? 'bg-amber-500'
-                : 'bg-green-600'
-            return (
-              <li key={budget.id} className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium">{categoryNameById.get(budget.categoryId) ?? 'Categoria'}</span>
-                  <div className="flex items-center gap-2">
-                    <span>
-                      {currency.format(budget.spentAmount)} / {currency.format(budget.plannedAmount)}
-                    </span>
-                    <button
-                      onClick={() => deleteMutation.mutate(budget.id)}
-                      className="text-xs text-slate-400 hover:text-red-600"
-                      aria-label="Remover orçamento"
-                    >
-                      remover
-                    </button>
-                  </div>
-                </div>
-                <div className="mt-2 h-2 w-full overflow-hidden rounded bg-slate-200 dark:bg-slate-800">
-                  <div
-                    className={`h-full ${barColor}`}
-                    style={{ width: `${Math.min(budget.percentageUsed, 100)}%` }}
-                  />
-                </div>
-                {budget.alertTriggered && (
-                  <p className={`mt-1 text-xs ${budget.exceeded ? 'text-red-600' : 'text-amber-600'}`}>
-                    {budget.exceeded ? 'Orçamento estourado' : `${budget.percentageUsed}% do orçamento usado`}
-                  </p>
-                )}
-              </li>
-            )
-          })}
-        </ul>
-      )}
-
-      {availableCategories.length > 0 && (
-        <form
-          onSubmit={handleSubmit((values) =>
-            createMutation.mutate({
-              categoryId: values.categoryId,
-              monthReference: month,
-              plannedAmount: Number(values.plannedAmount),
-              alertThresholdPct: 80,
-            }),
-          )}
-          className="flex flex-wrap items-end gap-2 rounded-lg border border-slate-200 p-3 dark:border-slate-800"
-        >
-          <div>
-            <label className="block text-xs font-medium">Categoria</label>
-            <select
-              className="mt-1 rounded border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900"
-              {...register('categoryId')}
+    <Card>
+      <CardHeader
+        icon={<PieChartIcon />}
+        title="Orçamentos do mês"
+        description="Defina limites por categoria e acompanhe o progresso"
+        action={
+          availableCategories.length > 0 && (
+            <Button
+              type="button"
+              variant={showForm ? 'secondary' : 'primary'}
+              size="sm"
+              onClick={() => setShowForm((value) => !value)}
             >
-              <option value="">Selecione</option>
-              {availableCategories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium">Valor planejado (R$)</label>
-            <input
-              type="number"
-              step="0.01"
-              className="mt-1 w-32 rounded border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900"
-              {...register('plannedAmount')}
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={createMutation.isPending}
-            className="rounded bg-slate-900 px-3 py-1.5 text-sm text-white disabled:opacity-50 dark:bg-slate-50 dark:text-slate-900"
+              {showForm ? <XIcon className="h-4 w-4" /> : <PlusIcon className="h-4 w-4" />}
+              {showForm ? 'Cancelar' : 'Novo orçamento'}
+            </Button>
+          )
+        }
+      />
+
+      <CardBody className="space-y-4">
+        {showForm && (
+          <form
+            onSubmit={handleSubmit((values) =>
+              createMutation.mutate({
+                categoryId: values.categoryId,
+                monthReference: month,
+                plannedAmount: Number(values.plannedAmount),
+                alertThresholdPct: 80,
+              }),
+            )}
+            className="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-[1fr_auto_auto] sm:items-end dark:border-slate-800 dark:bg-slate-950/50"
           >
-            Definir orçamento
-          </button>
-          {(errors.categoryId || errors.plannedAmount) && (
-            <p className="w-full text-xs text-red-600">
-              {errors.categoryId?.message ?? errors.plannedAmount?.message}
-            </p>
-          )}
-        </form>
-      )}
-    </section>
+            <Field label="Categoria" htmlFor="budget-category" error={errors.categoryId?.message}>
+              <select id="budget-category" className={inputClass} {...register('categoryId')}>
+                <option value="">Selecione</option>
+                {availableCategories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Valor planejado (R$)" htmlFor="budget-amount" error={errors.plannedAmount?.message} className="sm:w-40">
+              <input id="budget-amount" type="number" step="0.01" inputMode="decimal" placeholder="0,00" className={inputClass} {...register('plannedAmount')} />
+            </Field>
+            <Button type="submit" loading={createMutation.isPending}>
+              Salvar
+            </Button>
+          </form>
+        )}
+
+        {isLoading && (
+          <div className="space-y-2">
+            {[0, 1].map((key) => (
+              <div key={key} className="h-16 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
+            ))}
+          </div>
+        )}
+
+        {!isLoading && (!budgets || budgets.length === 0) && (
+          <EmptyState
+            icon={<PieChartIcon className="h-6 w-6" />}
+            title="Nenhum orçamento definido"
+            description="Defina um limite por categoria para receber alertas quando o gasto se aproximar do teto."
+            action={
+              !showForm &&
+              availableCategories.length > 0 && (
+                <Button size="sm" onClick={() => setShowForm(true)}>
+                  <PlusIcon className="h-4 w-4" /> Novo orçamento
+                </Button>
+              )
+            }
+          />
+        )}
+
+        {budgets && budgets.length > 0 && (
+          <ul className="space-y-3">
+            {budgets.map((budget) => {
+              const barColor = budget.exceeded ? 'bg-red-500' : budget.alertTriggered ? 'bg-amber-500' : 'bg-indigo-600'
+              return (
+                <li key={budget.id} className="group rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium text-slate-900 dark:text-white">
+                      {categoryNameById.get(budget.categoryId) ?? 'Categoria'}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      {budget.exceeded && <Badge tone="danger">Estourado</Badge>}
+                      {!budget.exceeded && budget.alertTriggered && <Badge tone="warning">Atenção</Badge>}
+                      <button
+                        onClick={() => deleteMutation.mutate(budget.id)}
+                        className="rounded-lg p-1.5 text-slate-300 opacity-0 transition hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 group-hover:opacity-100 dark:text-slate-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                        aria-label="Remover orçamento"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                    <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${Math.min(budget.percentageUsed, 100)}%` }} />
+                  </div>
+
+                  <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
+                    {currency.format(budget.spentAmount)}{' '}
+                    <span className="text-slate-400 dark:text-slate-500">de {currency.format(budget.plannedAmount)}</span>{' '}
+                    <span className="text-slate-400 dark:text-slate-500">({budget.percentageUsed}%)</span>
+                  </p>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </CardBody>
+    </Card>
   )
 }

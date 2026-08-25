@@ -1,3 +1,7 @@
+import { Tabs } from '../../components/ui/Tabs'
+import { CreditCardIcon, FileTextIcon, PieChartIcon, TrendingUpIcon, UsersIcon, WalletIcon } from '../../components/icons'
+import { JpDigitalLogo } from '../../components/JpDigitalLogo'
+import { ThemeToggle } from '../../components/ThemeToggle'
 import { BillsSection } from '../bills/BillsSection'
 import { BudgetsSection } from '../budgets/BudgetsSection'
 import { CreditCardsSection } from '../creditcards/CreditCardsSection'
@@ -6,42 +10,93 @@ import { NotificationsSection } from '../notifications/NotificationsSection'
 import { AuditLogSection } from '../privacy/AuditLogSection'
 import { TransactionForm } from '../transactions/TransactionForm'
 import { TransactionList } from '../transactions/TransactionList'
-import { Link } from 'react-router-dom'
-import { useAuthStore } from '../../stores/authStore'
-import { useThemeStore } from '../../stores/themeStore'
+import { Card, CardBody, CardHeader } from '../../components/ui/Card'
 import { CategoryBreakdownChart } from './CategoryBreakdownChart'
+import { StatsOverview } from './StatsOverview'
+import { UserMenu } from './UserMenu'
 
 export function DashboardPage() {
-  const { role, clearSession } = useAuthStore()
-  const { theme, toggle } = useThemeStore()
-
   return (
-    <div className="mx-auto max-w-2xl space-y-6 px-4 py-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Painel</h1>
-        <div className="flex items-center gap-3 text-sm">
-          <span className="text-slate-500">{role}</span>
-          <Link to="/meus-dados" className="underline">
-            Meus dados
-          </Link>
-          <button onClick={toggle} aria-label="Alternar tema" className="text-lg">
-            {theme === 'dark' ? '☀️' : '🌙'}
-          </button>
-          <button onClick={clearSession} className="underline">
-            Sair
-          </button>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/80 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950/80">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
+          <JpDigitalLogo />
+          <div className="flex items-center gap-1.5">
+            <ThemeToggle />
+            <UserMenu />
+          </div>
         </div>
-      </div>
+      </header>
 
-      <NotificationsSection />
-      <CategoryBreakdownChart />
-      <BillsSection />
-      <CreditCardsSection />
-      <BudgetsSection />
-      <TransactionForm />
-      <TransactionList />
-      <FamilySection />
-      <AuditLogSection />
+      <main className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6">
+        <StatsOverview />
+
+        <Tabs
+          tabs={[
+            {
+              id: 'overview',
+              label: 'Visão geral',
+              icon: <TrendingUpIcon className="h-4 w-4" />,
+              content: (
+                <div className="space-y-6">
+                  <NotificationsSection />
+                  <CategoryBreakdownChart />
+                </div>
+              ),
+            },
+            {
+              id: 'transactions',
+              label: 'Transações',
+              icon: <WalletIcon className="h-4 w-4" />,
+              content: (
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-[360px_1fr] lg:items-start">
+                  <Card>
+                    <CardHeader icon={<WalletIcon />} title="Nova transação" />
+                    <CardBody>
+                      <TransactionForm />
+                    </CardBody>
+                  </Card>
+                  <Card>
+                    <CardHeader icon={<WalletIcon />} title="Transações recentes" />
+                    <CardBody>
+                      <TransactionList />
+                    </CardBody>
+                  </Card>
+                </div>
+              ),
+            },
+            {
+              id: 'budgets',
+              label: 'Orçamentos',
+              icon: <PieChartIcon className="h-4 w-4" />,
+              content: <BudgetsSection />,
+            },
+            {
+              id: 'cards',
+              label: 'Cartões',
+              icon: <CreditCardIcon className="h-4 w-4" />,
+              content: <CreditCardsSection />,
+            },
+            {
+              id: 'bills',
+              label: 'Contas a pagar',
+              icon: <FileTextIcon className="h-4 w-4" />,
+              content: <BillsSection />,
+            },
+            {
+              id: 'family',
+              label: 'Família',
+              icon: <UsersIcon className="h-4 w-4" />,
+              content: (
+                <div className="space-y-6">
+                  <FamilySection />
+                  <AuditLogSection />
+                </div>
+              ),
+            },
+          ]}
+        />
+      </main>
     </div>
   )
 }

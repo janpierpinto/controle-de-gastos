@@ -1,5 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
+import { Card, CardBody, CardHeader } from '../../components/ui/Card'
+import { EmptyState } from '../../components/ui/EmptyState'
+import { PieChartIcon } from '../../components/icons'
 import { currentMonthEnd, currentMonthStart } from '../../lib/date'
 import { listCategories } from '../categories/api'
 import { listTransactionsByPeriod } from '../transactions/api'
@@ -17,10 +20,7 @@ export function CategoryBreakdownChart() {
     queryFn: () => listTransactionsByPeriod(from, to),
   })
 
-  if (isLoading) return null
-
   const expenses = (transactions?.content ?? []).filter((transaction) => transaction.type === 'EXPENSE')
-  if (expenses.length === 0) return null
 
   const totalsByCategory = new Map<string, number>()
   for (const expense of expenses) {
@@ -38,21 +38,39 @@ export function CategoryBreakdownChart() {
     .sort((a, b) => b.value - a.value)
 
   return (
-    <section className="space-y-2">
-      <h2 className="text-lg font-semibold">Gastos por categoria (mês atual)</h2>
-      <div className="h-64 rounded-lg border border-slate-200 p-2 dark:border-slate-800">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie data={data} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80} paddingAngle={2}>
-              {data.map((entry) => (
-                <Cell key={entry.name} fill={entry.color} />
-              ))}
-            </Pie>
-            <Tooltip formatter={(value) => currency.format(Number(value))} />
-            <Legend />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-    </section>
+    <Card>
+      <CardHeader icon={<PieChartIcon />} title="Gastos por categoria" description="Mês atual" />
+      <CardBody>
+        {isLoading && <div className="h-64 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />}
+
+        {!isLoading && data.length === 0 && (
+          <EmptyState
+            icon={<PieChartIcon className="h-6 w-6" />}
+            title="Sem gastos este mês"
+            description="Assim que você registrar uma despesa, o gráfico aparece aqui."
+          />
+        )}
+
+        {!isLoading && data.length > 0 && (
+          <div className="h-64 text-slate-600 dark:text-slate-300">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={data} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80} paddingAngle={2}>
+                  {data.map((entry) => (
+                    <Cell key={entry.name} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value) => currency.format(Number(value))}
+                  contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.92)', border: 'none', borderRadius: 8, color: '#fff' }}
+                  itemStyle={{ color: '#fff' }}
+                />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </CardBody>
+    </Card>
   )
 }

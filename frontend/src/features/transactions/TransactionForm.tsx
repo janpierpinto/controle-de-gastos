@@ -2,6 +2,10 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { Button } from '../../components/ui/Button'
+import { Field } from '../../components/ui/Field'
+import { inputClass, labelClass } from '../../components/ui/formStyles'
+import { TrendingDownIcon, TrendingUpIcon } from '../../components/icons'
 import { listCategories } from '../categories/api'
 import { listCreditCards } from '../creditcards/api'
 import { createTransaction } from './api'
@@ -31,6 +35,7 @@ export function TransactionForm() {
     register,
     handleSubmit,
     watch,
+    setValue,
     reset,
     formState: { errors },
   } = useForm<FormValues>({
@@ -73,89 +78,91 @@ export function TransactionForm() {
           notes: null,
         }),
       )}
-      className="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 p-4 sm:grid-cols-2 dark:border-slate-800"
+      className="space-y-4"
     >
-      <div className="sm:col-span-2">
-        <label className="block text-sm font-medium">Descrição</label>
-        <input
-          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
-          {...register('description')}
-        />
-        {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>}
-      </div>
-
       <div>
-        <label className="block text-sm font-medium">Tipo</label>
-        <select
-          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
-          {...register('type')}
-        >
-          <option value="EXPENSE">Gasto</option>
-          <option value="INCOME">Receita</option>
-        </select>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium">Categoria</label>
-        <select
-          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
-          {...register('categoryId')}
-        >
-          <option value="">Sem categoria</option>
-          {visibleCategories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium">Valor (R$)</label>
-        <input
-          type="number"
-          step="0.01"
-          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
-          {...register('amount')}
-        />
-        {errors.amount && <p className="mt-1 text-sm text-red-600">{errors.amount.message}</p>}
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium">Data</label>
-        <input
-          type="date"
-          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
-          {...register('occurredOn')}
-        />
-      </div>
-
-      {creditCards && creditCards.length > 0 && (
-        <div>
-          <label className="block text-sm font-medium">Cartão de crédito</label>
-          <select
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
-            {...register('creditCardId')}
+        <span className={labelClass}>Tipo</span>
+        <div className="mt-1.5 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Tipo de transação">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={selectedType === 'EXPENSE'}
+            onClick={() => setValue('type', 'EXPENSE')}
+            className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition ${
+              selectedType === 'EXPENSE'
+                ? 'border-red-300 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-500/10 dark:text-red-400'
+                : 'border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800'
+            }`}
           >
-            <option value="">Nenhum</option>
-            {creditCards.map((card) => (
-              <option key={card.id} value={card.id}>
-                {card.name}
+            <TrendingDownIcon className="h-4 w-4" /> Gasto
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={selectedType === 'INCOME'}
+            onClick={() => setValue('type', 'INCOME')}
+            className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition ${
+              selectedType === 'INCOME'
+                ? 'border-green-300 bg-green-50 text-green-700 dark:border-green-900/50 dark:bg-green-500/10 dark:text-green-400'
+                : 'border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800'
+            }`}
+          >
+            <TrendingUpIcon className="h-4 w-4" /> Receita
+          </button>
+        </div>
+      </div>
+
+      <Field label="Descrição" htmlFor="tx-description" error={errors.description?.message}>
+        <input id="tx-description" className={inputClass} placeholder="Ex: Supermercado" {...register('description')} />
+      </Field>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Valor (R$)" htmlFor="tx-amount" error={errors.amount?.message}>
+          <input
+            id="tx-amount"
+            type="number"
+            step="0.01"
+            inputMode="decimal"
+            placeholder="0,00"
+            className={inputClass}
+            {...register('amount')}
+          />
+        </Field>
+
+        <Field label="Data" htmlFor="tx-date">
+          <input id="tx-date" type="date" className={inputClass} {...register('occurredOn')} />
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Categoria" htmlFor="tx-category">
+          <select id="tx-category" className={inputClass} {...register('categoryId')}>
+            <option value="">Sem categoria</option>
+            {visibleCategories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
               </option>
             ))}
           </select>
-        </div>
-      )}
+        </Field>
 
-      <div className="sm:col-span-2">
-        <button
-          type="submit"
-          disabled={mutation.isPending}
-          className="rounded bg-slate-900 px-4 py-2 text-white disabled:opacity-50 dark:bg-slate-50 dark:text-slate-900"
-        >
-          {mutation.isPending ? 'Salvando…' : 'Adicionar transação'}
-        </button>
+        {creditCards && creditCards.length > 0 && (
+          <Field label="Cartão" htmlFor="tx-card">
+            <select id="tx-card" className={inputClass} {...register('creditCardId')}>
+              <option value="">Nenhum</option>
+              {creditCards.map((card) => (
+                <option key={card.id} value={card.id}>
+                  {card.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
       </div>
+
+      <Button type="submit" loading={mutation.isPending} className="w-full">
+        {mutation.isPending ? 'Salvando…' : 'Adicionar transação'}
+      </Button>
     </form>
   )
 }

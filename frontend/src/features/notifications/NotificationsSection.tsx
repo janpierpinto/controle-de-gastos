@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Button } from '../../components/ui/Button'
+import { BellIcon } from '../../components/icons'
 import { sendTestNotification } from './api'
 import { getCurrentSubscription, subscribeToPush, unsubscribeFromPush } from './pushSubscription'
 
@@ -26,38 +28,46 @@ export function NotificationsSection() {
   const isSubscribed = !!subscription
 
   return (
-    <section className="space-y-2 rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-      <h2 className="text-lg font-semibold">Notificações</h2>
-
-      {(subscribeMutation.isError || unsubscribeMutation.isError) && (
-        <p className="text-sm text-red-600">Não foi possível alterar as notificações. Verifique a permissão do navegador.</p>
-      )}
-
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          onClick={() => (isSubscribed ? unsubscribeMutation.mutate() : subscribeMutation.mutate())}
-          disabled={subscribeMutation.isPending || unsubscribeMutation.isPending}
-          className="rounded bg-slate-900 px-3 py-1.5 text-sm text-white disabled:opacity-50 dark:bg-slate-50 dark:text-slate-900"
-        >
-          {isSubscribed ? 'Desativar notificações' : 'Ativar notificações'}
-        </button>
-
-        {isSubscribed && (
-          <button
-            onClick={() => testMutation.mutate()}
-            disabled={testMutation.isPending}
-            className="rounded border border-slate-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-slate-700"
-          >
-            {testMutation.isPending ? 'Enviando…' : 'Enviar notificação de teste'}
-          </button>
-        )}
+    <div className="flex flex-col gap-3 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-indigo-500/20 dark:bg-indigo-500/5">
+      <div className="flex items-start gap-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400">
+          <BellIcon className="h-4.5 w-4.5" />
+        </span>
+        <div>
+          <p className="font-medium text-slate-900 dark:text-white">
+            {isSubscribed ? 'Notificações ativas' : 'Ative as notificações'}
+          </p>
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            {isSubscribed
+              ? 'Você vai receber avisos direto no navegador ou app instalado.'
+              : 'Receba avisos de orçamento e contas a vencer direto no seu dispositivo.'}
+          </p>
+          {(subscribeMutation.isError || unsubscribeMutation.isError) && (
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">Verifique a permissão de notificações do navegador.</p>
+          )}
+          {testMutation.isSuccess && (
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              {testMutation.data.sent > 0 ? 'Notificação de teste enviada.' : 'Nenhum dispositivo inscrito recebeu o teste.'}
+            </p>
+          )}
+        </div>
       </div>
 
-      {testMutation.isSuccess && (
-        <p className="text-sm text-slate-500">
-          {testMutation.data.sent > 0 ? 'Notificação enviada.' : 'Nenhum dispositivo inscrito recebeu o teste.'}
-        </p>
-      )}
-    </section>
+      <div className="flex shrink-0 items-center gap-2">
+        {isSubscribed && (
+          <Button variant="secondary" size="sm" loading={testMutation.isPending} onClick={() => testMutation.mutate()}>
+            Testar
+          </Button>
+        )}
+        <Button
+          variant={isSubscribed ? 'secondary' : 'primary'}
+          size="sm"
+          loading={subscribeMutation.isPending || unsubscribeMutation.isPending}
+          onClick={() => (isSubscribed ? unsubscribeMutation.mutate() : subscribeMutation.mutate())}
+        >
+          {isSubscribed ? 'Desativar' : 'Ativar notificações'}
+        </Button>
+      </div>
+    </div>
   )
 }

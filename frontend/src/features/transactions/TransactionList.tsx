@@ -1,4 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { EmptyState } from '../../components/ui/EmptyState'
+import { InboxIcon, TrashIcon, TrendingDownIcon, TrendingUpIcon } from '../../components/icons'
+import { listCategories } from '../categories/api'
 import { deleteTransaction, listTransactions } from './api'
 
 const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -7,6 +10,7 @@ const dateFormatter = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 
 export function TransactionList() {
   const queryClient = useQueryClient()
   const { data, isLoading } = useQuery({ queryKey: ['transactions'], queryFn: listTransactions })
+  const { data: categories } = useQuery({ queryKey: ['categories'], queryFn: listCategories })
 
   const deleteMutation = useMutation({
     mutationFn: deleteTransaction,
@@ -17,50 +21,70 @@ export function TransactionList() {
     },
   })
 
-  if (isLoading) return <p className="text-sm text-slate-500">Carregando…</p>
+  if (isLoading) {
+    return (
+      <ul className="space-y-2" aria-label="Carregando transações">
+        {[0, 1, 2].map((key) => (
+          <li key={key} className="h-14 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
+        ))}
+      </ul>
+    )
+  }
 
   const transactions = data?.content ?? []
-  const balance = transactions.reduce(
-    (total, transaction) => total + (transaction.type === 'INCOME' ? transaction.amount : -transaction.amount),
-    0,
-  )
+  const categoryById = new Map((categories ?? []).map((category) => [category.id, category]))
 
   if (transactions.length === 0) {
-    return <p className="text-sm text-slate-500">Nenhuma transação ainda. Adicione a primeira acima.</p>
+    return (
+      <EmptyState
+        icon={<InboxIcon className="h-6 w-6" />}
+        title="Nenhuma transação ainda"
+        description="Use o formulário para adicionar a primeira transação da família."
+      />
+    )
   }
 
   return (
-    <div className="space-y-3">
-      <p className="text-sm text-slate-600 dark:text-slate-400">
-        Saldo do período:{' '}
-        <span className={balance >= 0 ? 'font-semibold text-green-600' : 'font-semibold text-red-600'}>
-          {currency.format(balance)}
-        </span>
-      </p>
+    <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+      {transactions.map((transaction) => {
+        const category = transaction.categoryId ? categoryById.get(transaction.categoryId) : undefined
+        const isIncome = transaction.type === 'INCOME'
 
-      <ul className="divide-y divide-slate-200 rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
-        {transactions.map((transaction) => (
-          <li key={transaction.id} className="flex items-center justify-between px-4 py-3">
-            <div>
-              <p className="font-medium">{transaction.description}</p>
-              <p className="text-xs text-slate-500">{dateFormatter.format(new Date(`${transaction.occurredOn}T00:00:00`))}</p>
+        return (
+          <li key={transaction.id} className="group flex items-center gap-3 py-3">
+            <span
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+              style={{
+                backgroundColor: category?.color ? `${category.color}1a` : isIncome ? '#dcfce7' : '#fee2e2',
+                color: category?.color ?? (isIncome ? '#16a34a' : '#dc2626'),
+              }}
+            >
+              {isIncome ? <TrendingUpIcon className="h-5 w-5" /> : <TrendingDownIcon className="h-5 w-5" />}
+            </span>
+
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-medium text-slate-900 dark:text-white">{transaction.description}</p>
+              <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                {dateFormatter.format(new Date(`${transaction.occurredOn}T00:00:00`))}
+                {category && ` · ${category.name}`}
+              </p>
             </div>
-            <div className="flex items-center gap-3">
-              <span className={transaction.type === 'INCOME' ? 'text-green-600' : 'text-red-600'}>
-                {transaction.type === 'INCOME' ? '+' : '-'}
-                {currency.format(transaction.amount)}
-              </span>
-              <button
-                onClick={() => deleteMutation.mutate(transaction.id)}
-                className="text-xs text-slate-400 hover:text-red-600"
-                aria-label="Excluir transação"
-              >
-                remover
-              </button>
-            </div>
+
+            <span className={`shrink-0 font-semibold ${isIncome ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+              {isIncome ? '+' : '-'}
+              {currency.format(transaction.amount)}
+            </span>
+
+            <button
+              onClick={() => deleteMutation.mutate(transaction.id)}
+              className="shrink-0 rounded-lg p-2 text-slate-300 opacity-0 transition hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 group-hover:opacity-100 dark:text-slate-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+              aria-label={`Excluir transação ${transaction.description}`}
+            >
+              <TrashIcon className="h-4 w-4" />
+            </button>
           </li>
-        ))}
-      </ul>
-    </div>
+        )
+      })}
+    </ul>
   )
 }
