@@ -10,6 +10,7 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import { Field } from '../../components/ui/Field'
 import { inputClass } from '../../components/ui/formStyles'
 import { PlusIcon, TrashIcon, UsersIcon, XIcon } from '../../components/icons'
+import { initials } from '../../lib/initials'
 import { useAuthStore } from '../../stores/authStore'
 import { createInvitation, listInvitations, listMembers, removeMember, type MemberRole } from './api'
 
@@ -25,15 +26,6 @@ const roleLabels: Record<MemberRole, string> = {
   ADMIN: 'Administrador',
   MEMBER: 'Membro',
   CHILD: 'Criança',
-}
-
-function initials(name: string) {
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('')
 }
 
 function CopyLinkButton({ token }: { token: string }) {
