@@ -6,10 +6,12 @@ import { BillsSection } from '../bills/BillsSection'
 import { BudgetsSection } from '../budgets/BudgetsSection'
 import { CreditCardsSection } from '../creditcards/CreditCardsSection'
 import { FamilySection } from '../family/FamilySection'
+import { CashFlowForecastChart } from '../forecast/CashFlowForecastChart'
 import { GoalsSection } from '../goals/GoalsSection'
 import { InsightsPanel } from '../insights/InsightsPanel'
 import { NotificationsSection } from '../notifications/NotificationsSection'
 import { AuditLogSection } from '../privacy/AuditLogSection'
+import { ReportExportCard } from '../reports/ReportExportCard'
 import { TransactionForm } from '../transactions/TransactionForm'
 import { TransactionList } from '../transactions/TransactionList'
 import { Card, CardBody, CardHeader } from '../../components/ui/Card'
@@ -42,8 +44,10 @@ export function DashboardPage() {
               content: (
                 <div className="space-y-6">
                   <InsightsPanel />
+                  <CashFlowForecastChart />
                   <NotificationsSection />
                   <CategoryBreakdownChart />
+                  <ReportExportCard />
                 </div>
               ),
             },
