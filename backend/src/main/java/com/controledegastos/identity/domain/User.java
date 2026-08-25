@@ -47,6 +47,17 @@ public class User {
         this.name = name;
     }
 
+    /**
+     * Soft delete: anonymizes the email (freeing it up for reuse and removing
+     * it from view) but keeps the row itself, since tenant_members/transactions
+     * created by this user may still belong to a shared family ledger other
+     * members rely on.
+     */
+    public void markDeleted() {
+        this.status = UserStatus.DELETED;
+        this.email = "deleted-" + this.id + "@deleted.local";
+    }
+
     public UUID getId() {
         return id;
     }

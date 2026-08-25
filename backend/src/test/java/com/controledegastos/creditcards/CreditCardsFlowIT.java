@@ -84,7 +84,7 @@ class CreditCardsFlowIT {
     private String registerAndGetAccessToken() throws Exception {
         var email = "creditcards+" + System.nanoTime() + "@example.com";
         var body = """
-                {"tenantName":"Familia Cartao","email":"%s","password":"senha12345","name":"Responsável"}
+                {"tenantName":"Familia Cartao","email":"%s","password":"senha12345","name":"Responsável","acceptedTerms":true}
                 """.formatted(email);
 
         var result = mockMvc.perform(post("/api/v1/auth/register")

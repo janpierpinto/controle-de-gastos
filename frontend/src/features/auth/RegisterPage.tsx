@@ -12,6 +12,7 @@ const schema = z.object({
   name: z.string().min(1, 'obrigatório'),
   email: z.string().email('e-mail inválido'),
   password: z.string().min(8, 'mínimo 8 caracteres'),
+  acceptedTerms: z.literal(true, { message: 'é necessário aceitar para continuar' }),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -79,6 +80,23 @@ export function RegisterPage() {
             {...registerField('password')}
           />
           {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>}
+        </div>
+
+        <div>
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" className="mt-0.5" {...registerField('acceptedTerms')} />
+            <span>
+              Li e aceito a{' '}
+              <Link to="/privacidade" target="_blank" className="underline">
+                Política de Privacidade
+              </Link>{' '}
+              e os{' '}
+              <Link to="/termos" target="_blank" className="underline">
+                Termos de Uso
+              </Link>
+            </span>
+          </label>
+          {errors.acceptedTerms && <p className="mt-1 text-sm text-red-600">{errors.acceptedTerms.message}</p>}
         </div>
 
         {mutation.isError && (

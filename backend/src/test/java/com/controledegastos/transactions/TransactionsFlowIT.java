@@ -82,7 +82,7 @@ class TransactionsFlowIT {
     private String registerAndGetAccessToken(String tenantName) throws Exception {
         var email = tenantName.toLowerCase().replace(" ", ".") + "+" + System.nanoTime() + "@example.com";
         var body = objectMapper.writeValueAsString(
-                new RegisterPayload(tenantName, email, "senha12345", "Responsável"));
+                new RegisterPayload(tenantName, email, "senha12345", "Responsável", true));
 
         var result = mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -97,7 +97,7 @@ class TransactionsFlowIT {
         return "Bearer " + token;
     }
 
-    private record RegisterPayload(String tenantName, String email, String password, String name) {
+    private record RegisterPayload(String tenantName, String email, String password, String name, boolean acceptedTerms) {
     }
 
     private record TransactionPayload(

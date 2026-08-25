@@ -28,7 +28,7 @@ class AuthFlowIT {
     @Test
     void registerThenLoginIssuesTokensForTheSameTenant() throws Exception {
         var email = "familia.silva+" + System.nanoTime() + "@example.com";
-        var registerBody = objectMapper.writeValueAsString(new RegisterPayload("Família Silva", email, "senha12345", "Maria Silva"));
+        var registerBody = objectMapper.writeValueAsString(new RegisterPayload("Família Silva", email, "senha12345", "Maria Silva", true));
 
         var registerResult = mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -51,7 +51,7 @@ class AuthFlowIT {
     @Test
     void loginWithWrongPasswordIsRejected() throws Exception {
         var email = "familia.souza+" + System.nanoTime() + "@example.com";
-        var registerBody = objectMapper.writeValueAsString(new RegisterPayload("Família Souza", email, "senha12345", "João Souza"));
+        var registerBody = objectMapper.writeValueAsString(new RegisterPayload("Família Souza", email, "senha12345", "João Souza", true));
 
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -66,7 +66,7 @@ class AuthFlowIT {
                 .andExpect(status().isUnauthorized());
     }
 
-    private record RegisterPayload(String tenantName, String email, String password, String name) {
+    private record RegisterPayload(String tenantName, String email, String password, String name, boolean acceptedTerms) {
     }
 
     private record LoginPayload(String email, String password) {

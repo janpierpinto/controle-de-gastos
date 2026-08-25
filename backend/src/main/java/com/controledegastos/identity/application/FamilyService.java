@@ -10,8 +10,10 @@ import com.controledegastos.identity.infrastructure.TenantMemberRepository;
 import com.controledegastos.identity.infrastructure.TenantRepository;
 import com.controledegastos.identity.infrastructure.UserRepository;
 import com.controledegastos.identity.security.JwtService;
+import com.controledegastos.shared.audit.AuditService;
 import com.controledegastos.shared.tenancy.LookupSecretContext;
 import com.controledegastos.shared.tenancy.TenantContext;
+import com.controledegastos.shared.tenancy.UserContext;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
@@ -36,6 +38,7 @@ public class FamilyService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final AuditService auditService;
 
     public FamilyService(
             TenantRepository tenantRepository,
@@ -43,13 +46,15 @@ public class FamilyService {
             InvitationRepository invitationRepository,
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService) {
+            JwtService jwtService,
+            AuditService auditService) {
         this.tenantRepository = tenantRepository;
         this.tenantMemberRepository = tenantMemberRepository;
         this.invitationRepository = invitationRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.auditService = auditService;
     }
 
     @Transactional(readOnly = true)
@@ -69,7 +74,9 @@ public class FamilyService {
         }
         var token = generateToken();
         var invitation = new Invitation(TenantContext.get(), email, token, role, Instant.now().plus(INVITATION_TTL));
-        return invitationRepository.save(invitation);
+        var saved = invitationRepository.save(invitation);
+        auditService.record("INVITE_CREATED", "INVITATION", saved.getId());
+        return saved;
     }
 
     /**
@@ -102,12 +109,15 @@ public class FamilyService {
             var member = tenantMemberRepository.save(new TenantMember(tenant, user, invitation.getRole()));
             invitation.markAccepted();
             invitationRepository.save(invitation);
+            UserContext.set(user.getId());
+            auditService.record("INVITE_ACCEPTED", "TENANT_MEMBER", member.getId());
 
             var accessToken = jwtService.generateAccessToken(user.getId(), tenant.getId(), member.getRole().name());
             var refreshToken = jwtService.generateRefreshToken(user.getId(), tenant.getId(), member.getRole().name());
             return new AuthResult(accessToken, refreshToken, tenant.getId(), member.getRole().name());
         } finally {
             TenantContext.clear();
+            UserContext.clear();
         }
     }
 
@@ -118,6 +128,7 @@ public class FamilyService {
             throw new IllegalArgumentException("Não é possível remover o OWNER da família");
         }
         tenantMemberRepository.delete(member);
+        auditService.record("MEMBER_REMOVED", "TENANT_MEMBER", tenantMemberId);
     }
 
     private String generateToken() {

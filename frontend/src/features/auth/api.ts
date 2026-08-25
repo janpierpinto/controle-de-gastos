@@ -12,6 +12,7 @@ export interface RegisterPayload {
   email: string
   password: string
   name: string
+  acceptedTerms: boolean
 }
 
 export interface LoginPayload {

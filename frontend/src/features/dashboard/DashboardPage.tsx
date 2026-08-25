@@ -3,8 +3,10 @@ import { BudgetsSection } from '../budgets/BudgetsSection'
 import { CreditCardsSection } from '../creditcards/CreditCardsSection'
 import { FamilySection } from '../family/FamilySection'
 import { NotificationsSection } from '../notifications/NotificationsSection'
+import { AuditLogSection } from '../privacy/AuditLogSection'
 import { TransactionForm } from '../transactions/TransactionForm'
 import { TransactionList } from '../transactions/TransactionList'
+import { Link } from 'react-router-dom'
 import { useAuthStore } from '../../stores/authStore'
 import { useThemeStore } from '../../stores/themeStore'
 import { CategoryBreakdownChart } from './CategoryBreakdownChart'
@@ -19,6 +21,9 @@ export function DashboardPage() {
         <h1 className="text-2xl font-semibold">Painel</h1>
         <div className="flex items-center gap-3 text-sm">
           <span className="text-slate-500">{role}</span>
+          <Link to="/meus-dados" className="underline">
+            Meus dados
+          </Link>
           <button onClick={toggle} aria-label="Alternar tema" className="text-lg">
             {theme === 'dark' ? '☀️' : '🌙'}
           </button>
@@ -36,6 +41,7 @@ export function DashboardPage() {
       <TransactionForm />
       <TransactionList />
       <FamilySection />
+      <AuditLogSection />
     </div>
   )
 }
