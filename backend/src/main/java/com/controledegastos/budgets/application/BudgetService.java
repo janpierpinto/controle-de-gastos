@@ -1,10 +1,13 @@
 package com.controledegastos.budgets.application;
 
+import com.controledegastos.budgets.BudgetAlert;
+import com.controledegastos.budgets.BudgetsQueryApi;
 import com.controledegastos.budgets.domain.Budget;
 import com.controledegastos.budgets.infrastructure.BudgetRepository;
 import com.controledegastos.shared.tenancy.TenantContext;
 import com.controledegastos.transactions.TransactionsQueryApi;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
@@ -14,7 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class BudgetService {
+public class BudgetService implements BudgetsQueryApi {
 
     private final BudgetRepository budgetRepository;
     private final TransactionsQueryApi transactionsQueryApi;
@@ -57,5 +60,28 @@ public class BudgetService {
     private BigDecimal spentInMonth(UUID categoryId, LocalDate monthStart) {
         var monthEnd = YearMonth.from(monthStart).atEndOfMonth();
         return transactionsQueryApi.totalExpensesForCategoryInPeriod(categoryId, monthStart, monthEnd);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BudgetAlert> currentMonthAlerts() {
+        return list(LocalDate.now()).stream()
+                .map(progress -> {
+                    var budget = progress.budget();
+                    var spent = progress.spentAmount();
+                    var percentageUsed = budget.getPlannedAmount().signum() == 0
+                            ? 0
+                            : spent.multiply(BigDecimal.valueOf(100))
+                                    .divide(budget.getPlannedAmount(), 0, RoundingMode.HALF_UP)
+                                    .intValue();
+                    return new BudgetAlert(
+                            budget.getCategoryId(),
+                            budget.getPlannedAmount(),
+                            spent,
+                            percentageUsed,
+                            percentageUsed >= budget.getAlertThresholdPct(),
+                            spent.compareTo(budget.getPlannedAmount()) > 0);
+                })
+                .toList();
     }
 }

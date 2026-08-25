@@ -7,6 +7,7 @@ import { BudgetsSection } from '../budgets/BudgetsSection'
 import { CreditCardsSection } from '../creditcards/CreditCardsSection'
 import { FamilySection } from '../family/FamilySection'
 import { GoalsSection } from '../goals/GoalsSection'
+import { InsightsPanel } from '../insights/InsightsPanel'
 import { NotificationsSection } from '../notifications/NotificationsSection'
 import { AuditLogSection } from '../privacy/AuditLogSection'
 import { TransactionForm } from '../transactions/TransactionForm'
@@ -40,6 +41,7 @@ export function DashboardPage() {
               icon: <TrendingUpIcon className="h-4 w-4" />,
               content: (
                 <div className="space-y-6">
+                  <InsightsPanel />
                   <NotificationsSection />
                   <CategoryBreakdownChart />
                 </div>

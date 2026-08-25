@@ -1,6 +1,7 @@
 package com.controledegastos.transactions.application;
 
 import com.controledegastos.shared.tenancy.TenantContext;
+import com.controledegastos.transactions.TransactionSummary;
 import com.controledegastos.transactions.TransactionsQueryApi;
 import com.controledegastos.transactions.domain.Transaction;
 import com.controledegastos.transactions.domain.TransactionSplit;
@@ -74,6 +75,15 @@ public class TransactionService implements TransactionsQueryApi {
     @Transactional(readOnly = true)
     public BigDecimal totalExpensesForCreditCardInPeriod(UUID creditCardId, LocalDate from, LocalDate to) {
         return transactionRepository.sumAmountByCreditCardAndTypeAndPeriod(creditCardId, TransactionType.EXPENSE, from, to);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TransactionSummary> listInPeriod(LocalDate from, LocalDate to) {
+        return transactionRepository.findByOccurredOnBetweenOrderByOccurredOnDescCreatedAtDesc(from, to, Pageable.unpaged())
+                .stream()
+                .map(t -> new TransactionSummary(t.getId(), t.getCategoryId(), t.getDescription(), t.getAmount(), t.getOccurredOn(), t.getType().name()))
+                .toList();
     }
 
     @Transactional(readOnly = true)

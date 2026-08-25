@@ -1,10 +1,14 @@
 package com.controledegastos.bills.application;
 
+import com.controledegastos.bills.BillsQueryApi;
+import com.controledegastos.bills.UpcomingBill;
+import com.controledegastos.bills.domain.BillStatus;
 import com.controledegastos.bills.domain.BillToPay;
 import com.controledegastos.bills.infrastructure.BillToPayRepository;
 import com.controledegastos.shared.tenancy.TenantContext;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -12,7 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class BillService {
+public class BillService implements BillsQueryApi {
 
     private final BillToPayRepository billToPayRepository;
 
@@ -41,5 +45,22 @@ public class BillService {
     @Transactional
     public void delete(UUID id) {
         billToPayRepository.delete(billToPayRepository.findById(id).orElseThrow(NoSuchElementException::new));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UpcomingBill> upcomingWithinDays(int days) {
+        var today = LocalDate.now();
+        var horizon = today.plusDays(days);
+        return billToPayRepository.findAllByOrderByDueDateAsc().stream()
+                .filter(bill -> bill.getStatus() == BillStatus.PENDING && !bill.getDueDate().isAfter(horizon))
+                .map(bill -> new UpcomingBill(
+                        bill.getId(),
+                        bill.getDescription(),
+                        bill.getAmount(),
+                        bill.getDueDate(),
+                        ChronoUnit.DAYS.between(today, bill.getDueDate()),
+                        bill.isOverdue()))
+                .toList();
     }
 }

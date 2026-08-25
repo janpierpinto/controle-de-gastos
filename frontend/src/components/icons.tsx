@@ -108,6 +108,14 @@ export const ChevronDownIcon = base(<polyline points="6 9 12 15 18 9" />)
 
 export const CheckIcon = base(<polyline points="20 6 9 17 4 12" />)
 
+export const LightbulbIcon = base(
+  <>
+    <path d="M9 18h6" />
+    <path d="M10 22h4" />
+    <path d="M12 2a7 7 0 0 0-4 12.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3A7 7 0 0 0 12 2Z" />
+  </>,
+)
+
 export const SearchIcon = base(
   <>
     <circle cx="11" cy="11" r="8" />

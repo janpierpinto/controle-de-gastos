@@ -2,6 +2,7 @@ package com.controledegastos.transactions;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -15,4 +16,6 @@ public interface TransactionsQueryApi {
     BigDecimal totalExpensesForCategoryInPeriod(UUID categoryId, LocalDate from, LocalDate to);
 
     BigDecimal totalExpensesForCreditCardInPeriod(UUID creditCardId, LocalDate from, LocalDate to);
+
+    List<TransactionSummary> listInPeriod(LocalDate from, LocalDate to);
 }
