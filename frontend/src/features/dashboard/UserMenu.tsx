@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronDownIcon, LogOutIcon, ShieldIcon } from '../../components/icons'
+import { ChevronDownIcon, LogOutIcon, ShieldIcon, TagIcon } from '../../components/icons'
+import { NewCategoryModal } from '../categories/NewCategoryModal'
 import { initials } from '../../lib/initials'
 import { getMyData } from '../privacy/api'
 import { useAuthStore } from '../../stores/authStore'
@@ -16,6 +17,7 @@ const roleLabels: Record<string, string> = {
 export function UserMenu() {
   const { role, clearSession } = useAuthStore()
   const [open, setOpen] = useState(false)
+  const [newCategoryOpen, setNewCategoryOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const { data: me } = useQuery({ queryKey: ['privacy', 'my-data'], queryFn: getMyData })
@@ -76,14 +78,29 @@ export function UserMenu() {
           </Link>
           <button
             role="menuitem"
-            onClick={clearSession}
-            className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+            onClick={() => {
+              setOpen(false)
+              setNewCategoryOpen(true)
+            }}
+            className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
           >
-            <LogOutIcon className="h-4 w-4" />
-            Sair
+            <TagIcon className="h-4 w-4 text-slate-400" />
+            Nova categoria
           </button>
+          <div className="border-t border-slate-100 dark:border-slate-800">
+            <button
+              role="menuitem"
+              onClick={clearSession}
+              className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+            >
+              <LogOutIcon className="h-4 w-4" />
+              Sair
+            </button>
+          </div>
         </div>
       )}
+
+      {newCategoryOpen && <NewCategoryModal onClose={() => setNewCategoryOpen(false)} />}
     </div>
   )
 }
