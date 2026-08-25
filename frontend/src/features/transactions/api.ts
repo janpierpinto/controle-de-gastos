@@ -49,3 +49,21 @@ export function updateTransaction(id: string, payload: TransactionInput) {
 export function deleteTransaction(id: string) {
   return apiRequest<void>(`/transactions/${id}`, { method: 'DELETE' })
 }
+
+export interface TransactionSplit {
+  id: string
+  tenantMemberId: string
+  amount: number
+}
+
+export function listSplits(transactionId: string) {
+  return apiRequest<TransactionSplit[]>(`/transactions/${transactionId}/splits`)
+}
+
+export function setSplits(transactionId: string, splits: { tenantMemberId: string; amount: number }[]) {
+  return apiRequest<TransactionSplit[]>(`/transactions/${transactionId}/splits`, { method: 'PUT', body: { splits } })
+}
+
+export function clearSplits(transactionId: string) {
+  return apiRequest<void>(`/transactions/${transactionId}/splits`, { method: 'DELETE' })
+}

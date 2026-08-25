@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 import { EmptyState } from '../../components/ui/EmptyState'
-import { InboxIcon, TrashIcon, TrendingDownIcon, TrendingUpIcon } from '../../components/icons'
+import { InboxIcon, TrashIcon, TrendingDownIcon, TrendingUpIcon, UsersIcon } from '../../components/icons'
 import { formatBRL } from '../../lib/currency'
 import { listCategories } from '../categories/api'
-import { deleteTransaction, listTransactions } from './api'
+import { deleteTransaction, listTransactions, type Transaction } from './api'
+import { SplitTransactionModal } from './SplitTransactionModal'
 
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
@@ -11,6 +13,7 @@ export function TransactionList() {
   const queryClient = useQueryClient()
   const { data, isLoading } = useQuery({ queryKey: ['transactions'], queryFn: listTransactions })
   const { data: categories } = useQuery({ queryKey: ['categories'], queryFn: listCategories })
+  const [splittingTransaction, setSplittingTransaction] = useState<Transaction | null>(null)
 
   const deleteMutation = useMutation({
     mutationFn: deleteTransaction,
@@ -76,6 +79,15 @@ export function TransactionList() {
             </span>
 
             <button
+              onClick={() => setSplittingTransaction(transaction)}
+              className="shrink-0 rounded-lg p-2 text-slate-300 opacity-0 transition hover:bg-indigo-50 hover:text-indigo-600 focus-visible:opacity-100 group-hover:opacity-100 dark:text-slate-600 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
+              aria-label={`Dividir transação ${transaction.description} entre membros da família`}
+              title="Dividir entre membros da família"
+            >
+              <UsersIcon className="h-4 w-4" />
+            </button>
+
+            <button
               onClick={() => deleteMutation.mutate(transaction.id)}
               className="shrink-0 rounded-lg p-2 text-slate-300 opacity-0 transition hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 group-hover:opacity-100 dark:text-slate-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
               aria-label={`Excluir transação ${transaction.description}`}
@@ -85,6 +97,9 @@ export function TransactionList() {
           </li>
         )
       })}
+      {splittingTransaction && (
+        <SplitTransactionModal transaction={splittingTransaction} onClose={() => setSplittingTransaction(null)} />
+      )}
     </ul>
   )
 }

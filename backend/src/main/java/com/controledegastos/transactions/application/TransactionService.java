@@ -3,10 +3,13 @@ package com.controledegastos.transactions.application;
 import com.controledegastos.shared.tenancy.TenantContext;
 import com.controledegastos.transactions.TransactionsQueryApi;
 import com.controledegastos.transactions.domain.Transaction;
+import com.controledegastos.transactions.domain.TransactionSplit;
 import com.controledegastos.transactions.domain.TransactionType;
 import com.controledegastos.transactions.infrastructure.TransactionRepository;
+import com.controledegastos.transactions.infrastructure.TransactionSplitRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -18,9 +21,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class TransactionService implements TransactionsQueryApi {
 
     private final TransactionRepository transactionRepository;
+    private final TransactionSplitRepository transactionSplitRepository;
 
-    public TransactionService(TransactionRepository transactionRepository) {
+    public TransactionService(TransactionRepository transactionRepository, TransactionSplitRepository transactionSplitRepository) {
         this.transactionRepository = transactionRepository;
+        this.transactionSplitRepository = transactionSplitRepository;
     }
 
     @Transactional(readOnly = true)
@@ -69,5 +74,32 @@ public class TransactionService implements TransactionsQueryApi {
     @Transactional(readOnly = true)
     public BigDecimal totalExpensesForCreditCardInPeriod(UUID creditCardId, LocalDate from, LocalDate to) {
         return transactionRepository.sumAmountByCreditCardAndTypeAndPeriod(creditCardId, TransactionType.EXPENSE, from, to);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TransactionSplit> listSplits(UUID transactionId) {
+        get(transactionId);
+        return transactionSplitRepository.findByTransactionId(transactionId);
+    }
+
+    @Transactional
+    public List<TransactionSplit> setSplits(UUID transactionId, List<SplitInput> inputs) {
+        var transaction = get(transactionId);
+        var total = inputs.stream().map(SplitInput::amount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (total.compareTo(transaction.getAmount()) != 0) {
+            throw new IllegalArgumentException("A soma das divisões deve ser igual ao valor da transação");
+        }
+        transactionSplitRepository.deleteByTransactionId(transactionId);
+        var tenantId = TenantContext.get();
+        return inputs.stream()
+                .map(input -> transactionSplitRepository.save(
+                        new TransactionSplit(tenantId, transactionId, input.tenantMemberId(), input.amount())))
+                .toList();
+    }
+
+    @Transactional
+    public void clearSplits(UUID transactionId) {
+        get(transactionId);
+        transactionSplitRepository.deleteByTransactionId(transactionId);
     }
 }

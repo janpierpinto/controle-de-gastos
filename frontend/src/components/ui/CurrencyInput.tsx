@@ -9,8 +9,10 @@ interface CurrencyInputProps {
   onBlur?: () => void
   placeholder?: string
   className?: string
+  disabled?: boolean
   'aria-invalid'?: boolean
   'aria-describedby'?: string
+  'aria-label'?: string
 }
 
 /**
@@ -27,6 +29,7 @@ export function CurrencyInput({
   onBlur,
   placeholder = '0,00',
   className = '',
+  disabled = false,
   ...aria
 }: CurrencyInputProps) {
   const digits = value ? Math.round(value * 100).toString() : ''
@@ -49,7 +52,8 @@ export function CurrencyInput({
         onChange={handleChange}
         onBlur={onBlur}
         placeholder={placeholder}
-        className={`${className || inputClass} pl-10`}
+        disabled={disabled}
+        className={`${className || inputClass} pl-10 disabled:cursor-not-allowed disabled:opacity-50`}
         {...aria}
       />
     </div>
