@@ -13,6 +13,7 @@ import { inputClass } from '../../components/ui/formStyles'
 import { PieChartIcon, PlusIcon, TrashIcon, XIcon } from '../../components/icons'
 import { currentMonthStart } from '../../lib/date'
 import { formatBRL } from '../../lib/currency'
+import { CategorySelect } from '../categories/CategorySelect'
 import { listCategories } from '../categories/api'
 import { createBudget, deleteBudget, listBudgets } from './api'
 
@@ -32,7 +33,6 @@ export function BudgetsSection() {
   const { data: budgets, isLoading } = useQuery({ queryKey: ['budgets', month], queryFn: () => listBudgets(month) })
 
   const {
-    register,
     control,
     handleSubmit,
     reset,
@@ -93,14 +93,20 @@ export function BudgetsSection() {
             className="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-[1fr_auto_auto] sm:items-end dark:border-slate-800 dark:bg-slate-950/50"
           >
             <Field label="Categoria" htmlFor="budget-category" error={errors.categoryId?.message}>
-              <select id="budget-category" className={inputClass} {...register('categoryId')}>
-                <option value="">Selecione</option>
-                {availableCategories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+              <Controller
+                name="categoryId"
+                control={control}
+                render={({ field }) => (
+                  <CategorySelect
+                    id="budget-category"
+                    value={field.value}
+                    onChange={field.onChange}
+                    type="EXPENSE"
+                    emptyLabel="Selecione"
+                    excludeIds={Array.from(budgetedCategoryIds)}
+                  />
+                )}
+              />
             </Field>
             <Field label="Valor planejado" htmlFor="budget-amount" error={errors.plannedAmount?.message} className="sm:w-44">
               <Controller

@@ -11,6 +11,17 @@ export interface Category {
   global: boolean
 }
 
+export interface CreateCategoryInput {
+  name: string
+  icon: string | null
+  color: string | null
+  type: CategoryType
+}
+
 export function listCategories() {
   return apiRequest<Category[]>('/categories')
+}
+
+export function createCategory(payload: CreateCategoryInput) {
+  return apiRequest<Category>('/categories', { method: 'POST', body: payload })
 }

@@ -7,7 +7,7 @@ import { CurrencyInput } from '../../components/ui/CurrencyInput'
 import { Field } from '../../components/ui/Field'
 import { inputClass, labelClass } from '../../components/ui/formStyles'
 import { TrendingDownIcon, TrendingUpIcon } from '../../components/icons'
-import { listCategories } from '../categories/api'
+import { CategorySelect } from '../categories/CategorySelect'
 import { listCreditCards } from '../creditcards/api'
 import { createTransaction } from './api'
 
@@ -26,7 +26,6 @@ const todayIso = () => new Date().toISOString().slice(0, 10)
 
 export function TransactionForm() {
   const queryClient = useQueryClient()
-  const { data: categories } = useQuery({ queryKey: ['categories'], queryFn: listCategories })
   const { data: creditCards } = useQuery({ queryKey: ['credit-cards'], queryFn: () => listCreditCards() })
 
   const {
@@ -60,8 +59,6 @@ export function TransactionForm() {
       })
     },
   })
-
-  const visibleCategories = categories?.filter((category) => category.type === selectedType) ?? []
 
   return (
     <form
@@ -140,14 +137,13 @@ export function TransactionForm() {
 
       <div className="grid grid-cols-2 gap-3">
         <Field label="Categoria" htmlFor="tx-category">
-          <select id="tx-category" className={inputClass} {...register('categoryId')}>
-            <option value="">Sem categoria</option>
-            {visibleCategories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
+          <Controller
+            name="categoryId"
+            control={control}
+            render={({ field }) => (
+              <CategorySelect id="tx-category" value={field.value} onChange={field.onChange} type={selectedType} />
+            )}
+          />
         </Field>
 
         {creditCards && creditCards.length > 0 && (
