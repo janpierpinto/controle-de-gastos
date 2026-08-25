@@ -1,5 +1,6 @@
 package com.controledegastos.shared.web;
 
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -14,6 +15,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail handleIllegalArgument(IllegalArgumentException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(NoSuchElementException.class)
+    public ProblemDetail handleNotFound(NoSuchElementException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "Recurso não encontrado");
     }
 
     @ExceptionHandler(BadCredentialsException.class)
