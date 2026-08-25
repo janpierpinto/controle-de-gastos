@@ -2,6 +2,7 @@ import { BudgetsSection } from '../budgets/BudgetsSection'
 import { TransactionForm } from '../transactions/TransactionForm'
 import { TransactionList } from '../transactions/TransactionList'
 import { useAuthStore } from '../../stores/authStore'
+import { CategoryBreakdownChart } from './CategoryBreakdownChart'
 
 export function DashboardPage() {
   const { role, clearSession } = useAuthStore()
@@ -18,6 +19,7 @@ export function DashboardPage() {
         </div>
       </div>
 
+      <CategoryBreakdownChart />
       <BudgetsSection />
       <TransactionForm />
       <TransactionList />

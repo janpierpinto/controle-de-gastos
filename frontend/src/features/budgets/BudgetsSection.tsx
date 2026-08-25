@@ -2,15 +2,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { currentMonthStart } from '../../lib/date'
 import { listCategories } from '../categories/api'
 import { createBudget, deleteBudget, listBudgets } from './api'
 
 const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
-
-const currentMonthStart = () => {
-  const now = new Date()
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
-}
 
 const schema = z.object({
   categoryId: z.string().min(1, 'obrigatório'),

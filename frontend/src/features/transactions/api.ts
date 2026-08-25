@@ -32,6 +32,10 @@ export function listTransactions() {
   return apiRequest<PagedResponse<Transaction>>('/transactions?size=50')
 }
 
+export function listTransactionsByPeriod(from: string, to: string) {
+  return apiRequest<PagedResponse<Transaction>>(`/transactions?from=${from}&to=${to}&size=500`)
+}
+
 export function createTransaction(payload: TransactionInput) {
   return apiRequest<Transaction>('/transactions', { method: 'POST', body: payload })
 }
