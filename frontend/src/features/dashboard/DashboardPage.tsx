@@ -1,11 +1,12 @@
 import { Tabs } from '../../components/ui/Tabs'
-import { CreditCardIcon, FileTextIcon, PieChartIcon, TrendingUpIcon, UsersIcon, WalletIcon } from '../../components/icons'
+import { CreditCardIcon, FileTextIcon, PieChartIcon, TargetIcon, TrendingUpIcon, UsersIcon, WalletIcon } from '../../components/icons'
 import { JpDigitalLogo } from '../../components/JpDigitalLogo'
 import { ThemeToggle } from '../../components/ThemeToggle'
 import { BillsSection } from '../bills/BillsSection'
 import { BudgetsSection } from '../budgets/BudgetsSection'
 import { CreditCardsSection } from '../creditcards/CreditCardsSection'
 import { FamilySection } from '../family/FamilySection'
+import { GoalsSection } from '../goals/GoalsSection'
 import { NotificationsSection } from '../notifications/NotificationsSection'
 import { AuditLogSection } from '../privacy/AuditLogSection'
 import { TransactionForm } from '../transactions/TransactionForm'
@@ -70,6 +71,12 @@ export function DashboardPage() {
               label: 'Orçamentos',
               icon: <PieChartIcon className="h-4 w-4" />,
               content: <BudgetsSection />,
+            },
+            {
+              id: 'goals',
+              label: 'Metas',
+              icon: <TargetIcon className="h-4 w-4" />,
+              content: <GoalsSection />,
             },
             {
               id: 'cards',
