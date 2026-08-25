@@ -1,6 +1,7 @@
 import { BillsSection } from '../bills/BillsSection'
 import { BudgetsSection } from '../budgets/BudgetsSection'
 import { CreditCardsSection } from '../creditcards/CreditCardsSection'
+import { FamilySection } from '../family/FamilySection'
 import { TransactionForm } from '../transactions/TransactionForm'
 import { TransactionList } from '../transactions/TransactionList'
 import { useAuthStore } from '../../stores/authStore'
@@ -27,6 +28,7 @@ export function DashboardPage() {
       <BudgetsSection />
       <TransactionForm />
       <TransactionList />
+      <FamilySection />
     </div>
   )
 }

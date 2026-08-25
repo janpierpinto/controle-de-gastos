@@ -5,6 +5,7 @@ import { ProtectedRoute } from './app/ProtectedRoute'
 import { LoginPage } from './features/auth/LoginPage'
 import { RegisterPage } from './features/auth/RegisterPage'
 import { DashboardPage } from './features/dashboard/DashboardPage'
+import { AcceptInvitePage } from './features/family/AcceptInvitePage'
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
         <Routes>
           <Route path="/entrar" element={<LoginPage />} />
           <Route path="/registrar" element={<RegisterPage />} />
+          <Route path="/convite/:token" element={<AcceptInvitePage />} />
           <Route
             path="/"
             element={

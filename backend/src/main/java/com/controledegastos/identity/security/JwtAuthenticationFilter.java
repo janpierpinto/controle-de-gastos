@@ -1,5 +1,6 @@
 package com.controledegastos.identity.security;
 
+import com.controledegastos.shared.tenancy.LookupSecretContext;
 import com.controledegastos.shared.tenancy.TenantContext;
 import com.controledegastos.shared.tenancy.UserContext;
 import io.jsonwebtoken.JwtException;
@@ -34,6 +35,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         } finally {
             TenantContext.clear();
             UserContext.clear();
+            LookupSecretContext.clear();
         }
     }
 

@@ -15,8 +15,11 @@ import org.springframework.jdbc.datasource.DelegatingDataSource;
  */
 public class TenantAwareDataSource extends DelegatingDataSource {
 
-    private static final String SET_CONTEXT_SQL =
-            "SELECT set_config('app.current_tenant', ?, false), set_config('app.current_user', ?, false)";
+    private static final String SET_CONTEXT_SQL = """
+            SELECT set_config('app.current_tenant', ?, false),
+                   set_config('app.current_user', ?, false),
+                   set_config('app.lookup_secret', ?, false)
+            """;
 
     public TenantAwareDataSource(DataSource targetDataSource) {
         super(targetDataSource);
@@ -35,9 +38,11 @@ public class TenantAwareDataSource extends DelegatingDataSource {
     private Connection applyTenant(Connection connection) throws SQLException {
         var tenantId = TenantContext.get();
         var userId = UserContext.get();
+        var lookupSecret = LookupSecretContext.get();
         try (var statement = connection.prepareStatement(SET_CONTEXT_SQL)) {
             statement.setString(1, tenantId == null ? "" : tenantId.toString());
             statement.setString(2, userId == null ? "" : userId.toString());
+            statement.setString(3, lookupSecret == null ? "" : lookupSecret);
             statement.execute();
         }
         return connection;
