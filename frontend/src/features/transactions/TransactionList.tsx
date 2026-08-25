@@ -13,6 +13,7 @@ export function TransactionList() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
       queryClient.invalidateQueries({ queryKey: ['budgets'] })
+      queryClient.invalidateQueries({ queryKey: ['credit-cards'] })
     },
   })
 

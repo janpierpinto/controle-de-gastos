@@ -47,7 +47,7 @@ public class TransactionController {
     @PostMapping
     public ResponseEntity<TransactionResponse> create(@Valid @RequestBody TransactionRequest request) {
         var transaction = transactionService.create(
-                request.categoryId(), request.description(), request.amount(), request.occurredOn(),
+                request.categoryId(), request.creditCardId(), request.description(), request.amount(), request.occurredOn(),
                 request.type(), request.recurring(), request.notes());
         return ResponseEntity.status(HttpStatus.CREATED).body(TransactionResponse.from(transaction));
     }
@@ -55,7 +55,7 @@ public class TransactionController {
     @PutMapping("/{id}")
     public TransactionResponse update(@PathVariable UUID id, @Valid @RequestBody TransactionRequest request) {
         var transaction = transactionService.update(
-                id, request.categoryId(), request.description(), request.amount(), request.occurredOn(),
+                id, request.categoryId(), request.creditCardId(), request.description(), request.amount(), request.occurredOn(),
                 request.type(), request.recurring(), request.notes());
         return TransactionResponse.from(transaction);
     }

@@ -10,6 +10,7 @@ import java.util.UUID;
 public record TransactionResponse(
         UUID id,
         UUID categoryId,
+        UUID creditCardId,
         String description,
         BigDecimal amount,
         LocalDate occurredOn,
@@ -22,6 +23,7 @@ public record TransactionResponse(
         return new TransactionResponse(
                 transaction.getId(),
                 transaction.getCategoryId(),
+                transaction.getCreditCardId(),
                 transaction.getDescription(),
                 transaction.getAmount(),
                 transaction.getOccurredOn(),

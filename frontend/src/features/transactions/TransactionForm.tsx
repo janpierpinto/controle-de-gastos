@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { listCategories } from '../categories/api'
+import { listCreditCards } from '../creditcards/api'
 import { createTransaction } from './api'
 
 const schema = z.object({
@@ -14,6 +15,7 @@ const schema = z.object({
   occurredOn: z.string().min(1, 'obrigatório'),
   type: z.enum(['EXPENSE', 'INCOME']),
   categoryId: z.string().optional(),
+  creditCardId: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -23,6 +25,7 @@ const todayIso = () => new Date().toISOString().slice(0, 10)
 export function TransactionForm() {
   const queryClient = useQueryClient()
   const { data: categories } = useQuery({ queryKey: ['categories'], queryFn: listCategories })
+  const { data: creditCards } = useQuery({ queryKey: ['credit-cards'], queryFn: () => listCreditCards() })
 
   const {
     register,
@@ -42,7 +45,15 @@ export function TransactionForm() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
       queryClient.invalidateQueries({ queryKey: ['budgets'] })
-      reset({ description: '', amount: '', occurredOn: todayIso(), type: selectedType, categoryId: undefined })
+      queryClient.invalidateQueries({ queryKey: ['credit-cards'] })
+      reset({
+        description: '',
+        amount: '',
+        occurredOn: todayIso(),
+        type: selectedType,
+        categoryId: undefined,
+        creditCardId: undefined,
+      })
     },
   })
 
@@ -57,6 +68,7 @@ export function TransactionForm() {
           occurredOn: values.occurredOn,
           type: values.type,
           categoryId: values.categoryId || null,
+          creditCardId: values.creditCardId || null,
           recurring: false,
           notes: null,
         }),
@@ -117,6 +129,23 @@ export function TransactionForm() {
           {...register('occurredOn')}
         />
       </div>
+
+      {creditCards && creditCards.length > 0 && (
+        <div>
+          <label className="block text-sm font-medium">Cartão de crédito</label>
+          <select
+            className="mt-1 w-full rounded border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
+            {...register('creditCardId')}
+          >
+            <option value="">Nenhum</option>
+            {creditCards.map((card) => (
+              <option key={card.id} value={card.id}>
+                {card.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="sm:col-span-2">
         <button

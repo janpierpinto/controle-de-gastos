@@ -30,6 +30,9 @@ public class Transaction {
     @Column(name = "category_id")
     private UUID categoryId;
 
+    @Column(name = "credit_card_id")
+    private UUID creditCardId;
+
     @Column(nullable = false, length = 255)
     private String description;
 
@@ -65,6 +68,7 @@ public class Transaction {
     public Transaction(
             UUID tenantId,
             UUID categoryId,
+            UUID creditCardId,
             String description,
             BigDecimal amount,
             LocalDate occurredOn,
@@ -73,6 +77,7 @@ public class Transaction {
             String notes) {
         this.tenantId = tenantId;
         this.categoryId = categoryId;
+        this.creditCardId = creditCardId;
         this.description = description;
         this.amount = amount;
         this.occurredOn = occurredOn;
@@ -81,9 +86,10 @@ public class Transaction {
         this.notes = notes;
     }
 
-    public void update(UUID categoryId, String description, BigDecimal amount, LocalDate occurredOn,
+    public void update(UUID categoryId, UUID creditCardId, String description, BigDecimal amount, LocalDate occurredOn,
             TransactionType type, boolean recurring, String notes) {
         this.categoryId = categoryId;
+        this.creditCardId = creditCardId;
         this.description = description;
         this.amount = amount;
         this.occurredOn = occurredOn;
@@ -103,6 +109,10 @@ public class Transaction {
 
     public UUID getCategoryId() {
         return categoryId;
+    }
+
+    public UUID getCreditCardId() {
+        return creditCardId;
     }
 
     public String getDescription() {

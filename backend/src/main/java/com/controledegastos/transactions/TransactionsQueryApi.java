@@ -13,4 +13,6 @@ import java.util.UUID;
 public interface TransactionsQueryApi {
 
     BigDecimal totalExpensesForCategoryInPeriod(UUID categoryId, LocalDate from, LocalDate to);
+
+    BigDecimal totalExpensesForCreditCardInPeriod(UUID creditCardId, LocalDate from, LocalDate to);
 }

@@ -4,6 +4,7 @@ import type { CategoryType } from '../categories/api'
 export interface Transaction {
   id: string
   categoryId: string | null
+  creditCardId: string | null
   description: string
   amount: number
   occurredOn: string
@@ -20,6 +21,7 @@ interface PagedResponse<T> {
 
 export interface TransactionInput {
   categoryId: string | null
+  creditCardId: string | null
   description: string
   amount: number
   occurredOn: string

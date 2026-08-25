@@ -29,4 +29,11 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
             and t.occurredOn >= :from and t.occurredOn <= :to
             """)
     BigDecimal sumAmountByCategoryAndTypeAndPeriod(UUID categoryId, TransactionType type, LocalDate from, LocalDate to);
+
+    @Query("""
+            select coalesce(sum(t.amount), 0) from Transaction t
+            where t.creditCardId = :creditCardId and t.type = :type
+            and t.occurredOn >= :from and t.occurredOn <= :to
+            """)
+    BigDecimal sumAmountByCreditCardAndTypeAndPeriod(UUID creditCardId, TransactionType type, LocalDate from, LocalDate to);
 }

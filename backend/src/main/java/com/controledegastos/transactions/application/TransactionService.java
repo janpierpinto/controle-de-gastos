@@ -38,19 +38,19 @@ public class TransactionService implements TransactionsQueryApi {
 
     @Transactional
     public Transaction create(
-            UUID categoryId, String description, BigDecimal amount, LocalDate occurredOn,
+            UUID categoryId, UUID creditCardId, String description, BigDecimal amount, LocalDate occurredOn,
             TransactionType type, boolean recurring, String notes) {
         var transaction = new Transaction(
-                TenantContext.get(), categoryId, description, amount, occurredOn, type, recurring, notes);
+                TenantContext.get(), categoryId, creditCardId, description, amount, occurredOn, type, recurring, notes);
         return transactionRepository.save(transaction);
     }
 
     @Transactional
     public Transaction update(
-            UUID id, UUID categoryId, String description, BigDecimal amount, LocalDate occurredOn,
+            UUID id, UUID categoryId, UUID creditCardId, String description, BigDecimal amount, LocalDate occurredOn,
             TransactionType type, boolean recurring, String notes) {
         var transaction = get(id);
-        transaction.update(categoryId, description, amount, occurredOn, type, recurring, notes);
+        transaction.update(categoryId, creditCardId, description, amount, occurredOn, type, recurring, notes);
         return transaction;
     }
 
@@ -63,5 +63,11 @@ public class TransactionService implements TransactionsQueryApi {
     @Transactional(readOnly = true)
     public BigDecimal totalExpensesForCategoryInPeriod(UUID categoryId, LocalDate from, LocalDate to) {
         return transactionRepository.sumAmountByCategoryAndTypeAndPeriod(categoryId, TransactionType.EXPENSE, from, to);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal totalExpensesForCreditCardInPeriod(UUID creditCardId, LocalDate from, LocalDate to) {
+        return transactionRepository.sumAmountByCreditCardAndTypeAndPeriod(creditCardId, TransactionType.EXPENSE, from, to);
     }
 }

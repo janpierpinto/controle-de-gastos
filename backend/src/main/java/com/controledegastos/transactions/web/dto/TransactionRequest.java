@@ -10,6 +10,7 @@ import java.util.UUID;
 
 public record TransactionRequest(
         UUID categoryId,
+        UUID creditCardId,
         @NotBlank(message = "obrigatório") String description,
         @NotNull(message = "obrigatório") @DecimalMin(value = "0.01", message = "deve ser positivo") BigDecimal amount,
         @NotNull(message = "obrigatório") LocalDate occurredOn,
