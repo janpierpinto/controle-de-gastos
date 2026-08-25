@@ -1,26 +1,24 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Card, CardBody, CardHeader } from '../../components/ui/Card'
+import { CurrencyInput } from '../../components/ui/CurrencyInput'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { Field } from '../../components/ui/Field'
 import { checkboxClass, inputClass } from '../../components/ui/formStyles'
 import { CheckCircleIcon, FileTextIcon, PlusIcon, TrashIcon, XIcon } from '../../components/icons'
+import { formatBRL } from '../../lib/currency'
 import { createBill, deleteBill, listBills, markBillPaid } from './api'
 
-const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
 const schema = z.object({
   description: z.string().min(1, 'obrigatório'),
-  amount: z
-    .string()
-    .min(1, 'obrigatório')
-    .refine((value) => Number(value) > 0, 'deve ser positivo'),
+  amount: z.number().positive('informe um valor'),
   dueDate: z.string().min(1, 'obrigatório'),
   recurring: z.boolean(),
 })
@@ -34,16 +32,17 @@ export function BillsSection() {
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { description: '', amount: '', dueDate: '', recurring: false } })
+  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { description: '', amount: 0, dueDate: '', recurring: false } })
 
   const createMutation = useMutation({
     mutationFn: createBill,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bills'] })
-      reset({ description: '', amount: '', dueDate: '', recurring: false })
+      reset({ description: '', amount: 0, dueDate: '', recurring: false })
       setShowForm(false)
     },
   })
@@ -82,7 +81,7 @@ export function BillsSection() {
             onSubmit={handleSubmit((values) =>
               createMutation.mutate({
                 description: values.description,
-                amount: Number(values.amount),
+                amount: values.amount,
                 dueDate: values.dueDate,
                 recurring: values.recurring,
                 reminderDaysBefore: 3,
@@ -93,8 +92,21 @@ export function BillsSection() {
             <Field label="Descrição" htmlFor="bill-description" error={errors.description?.message} className="col-span-2">
               <input id="bill-description" className={inputClass} placeholder="Aluguel" {...register('description')} />
             </Field>
-            <Field label="Valor (R$)" htmlFor="bill-amount" error={errors.amount?.message}>
-              <input id="bill-amount" type="number" step="0.01" inputMode="decimal" placeholder="0,00" className={inputClass} {...register('amount')} />
+            <Field label="Valor" htmlFor="bill-amount" error={errors.amount?.message}>
+              <Controller
+                name="amount"
+                control={control}
+                render={({ field }) => (
+                  <CurrencyInput
+                    id="bill-amount"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    className={inputClass}
+                    aria-invalid={!!errors.amount}
+                  />
+                )}
+              />
             </Field>
             <Field label="Vencimento" htmlFor="bill-due" error={errors.dueDate?.message}>
               <input id="bill-due" type="date" className={inputClass} {...register('dueDate')} />
@@ -154,7 +166,7 @@ export function BillsSection() {
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <span className="font-semibold text-slate-900 dark:text-white">{currency.format(bill.amount)}</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">{formatBRL(bill.amount)}</span>
                   <Button size="sm" onClick={() => payMutation.mutate(bill.id)} loading={payMutation.isPending && payMutation.variables === bill.id}>
                     Pagar
                   </Button>

@@ -1,8 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { Button } from '../../components/ui/Button'
+import { CurrencyInput } from '../../components/ui/CurrencyInput'
 import { Field } from '../../components/ui/Field'
 import { inputClass, labelClass } from '../../components/ui/formStyles'
 import { TrendingDownIcon, TrendingUpIcon } from '../../components/icons'
@@ -12,10 +13,7 @@ import { createTransaction } from './api'
 
 const schema = z.object({
   description: z.string().min(1, 'obrigatório'),
-  amount: z
-    .string()
-    .min(1, 'obrigatório')
-    .refine((value) => Number(value) > 0, 'deve ser positivo'),
+  amount: z.number().positive('informe um valor'),
   occurredOn: z.string().min(1, 'obrigatório'),
   type: z.enum(['EXPENSE', 'INCOME']),
   categoryId: z.string().optional(),
@@ -33,6 +31,7 @@ export function TransactionForm() {
 
   const {
     register,
+    control,
     handleSubmit,
     watch,
     setValue,
@@ -40,7 +39,7 @@ export function TransactionForm() {
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { type: 'EXPENSE', occurredOn: todayIso(), amount: '', description: '' },
+    defaultValues: { type: 'EXPENSE', occurredOn: todayIso(), amount: 0, description: '' },
   })
 
   const selectedType = watch('type')
@@ -53,7 +52,7 @@ export function TransactionForm() {
       queryClient.invalidateQueries({ queryKey: ['credit-cards'] })
       reset({
         description: '',
-        amount: '',
+        amount: 0,
         occurredOn: todayIso(),
         type: selectedType,
         categoryId: undefined,
@@ -69,7 +68,7 @@ export function TransactionForm() {
       onSubmit={handleSubmit((values) =>
         mutation.mutate({
           description: values.description,
-          amount: Number(values.amount),
+          amount: values.amount,
           occurredOn: values.occurredOn,
           type: values.type,
           categoryId: values.categoryId || null,
@@ -117,15 +116,20 @@ export function TransactionForm() {
       </Field>
 
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Valor (R$)" htmlFor="tx-amount" error={errors.amount?.message}>
-          <input
-            id="tx-amount"
-            type="number"
-            step="0.01"
-            inputMode="decimal"
-            placeholder="0,00"
-            className={inputClass}
-            {...register('amount')}
+        <Field label="Valor" htmlFor="tx-amount" error={errors.amount?.message}>
+          <Controller
+            name="amount"
+            control={control}
+            render={({ field }) => (
+              <CurrencyInput
+                id="tx-amount"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                className={inputClass}
+                aria-invalid={!!errors.amount}
+              />
+            )}
           />
         </Field>
 

@@ -10,9 +10,8 @@ import { Field } from '../../components/ui/Field'
 import { inputClass } from '../../components/ui/formStyles'
 import { CreditCardIcon, PlusIcon, TrashIcon, XIcon } from '../../components/icons'
 import { currentMonthStart } from '../../lib/date'
+import { formatBRL } from '../../lib/currency'
 import { createCreditCard, deleteCreditCard, listCreditCards } from './api'
-
-const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 
 const schema = z.object({
   name: z.string().min(1, 'obrigatório'),
@@ -157,7 +156,7 @@ export function CreditCardsSection() {
 
                 <div className="relative">
                   <p className="text-xs text-white/70">Fatura do mês</p>
-                  <p className="text-xl font-bold">{currency.format(card.invoiceAmount ?? 0)}</p>
+                  <p className="text-xl font-bold">{formatBRL(card.invoiceAmount ?? 0)}</p>
                   <p className="mt-1 text-xs text-white/70">
                     Fecha dia {card.closingDay} · vence dia {card.dueDay}
                   </p>

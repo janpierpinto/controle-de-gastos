@@ -1,27 +1,24 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Card, CardBody, CardHeader } from '../../components/ui/Card'
+import { CurrencyInput } from '../../components/ui/CurrencyInput'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { Field } from '../../components/ui/Field'
 import { inputClass } from '../../components/ui/formStyles'
 import { PieChartIcon, PlusIcon, TrashIcon, XIcon } from '../../components/icons'
 import { currentMonthStart } from '../../lib/date'
+import { formatBRL } from '../../lib/currency'
 import { listCategories } from '../categories/api'
 import { createBudget, deleteBudget, listBudgets } from './api'
 
-const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
-
 const schema = z.object({
   categoryId: z.string().min(1, 'obrigatório'),
-  plannedAmount: z
-    .string()
-    .min(1, 'obrigatório')
-    .refine((value) => Number(value) > 0, 'deve ser positivo'),
+  plannedAmount: z.number().positive('informe um valor'),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -36,16 +33,17 @@ export function BudgetsSection() {
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { categoryId: '', plannedAmount: '' } })
+  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { categoryId: '', plannedAmount: 0 } })
 
   const createMutation = useMutation({
     mutationFn: createBudget,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['budgets', month] })
-      reset({ categoryId: '', plannedAmount: '' })
+      reset({ categoryId: '', plannedAmount: 0 })
       setShowForm(false)
     },
   })
@@ -88,7 +86,7 @@ export function BudgetsSection() {
               createMutation.mutate({
                 categoryId: values.categoryId,
                 monthReference: month,
-                plannedAmount: Number(values.plannedAmount),
+                plannedAmount: values.plannedAmount,
                 alertThresholdPct: 80,
               }),
             )}
@@ -104,8 +102,21 @@ export function BudgetsSection() {
                 ))}
               </select>
             </Field>
-            <Field label="Valor planejado (R$)" htmlFor="budget-amount" error={errors.plannedAmount?.message} className="sm:w-40">
-              <input id="budget-amount" type="number" step="0.01" inputMode="decimal" placeholder="0,00" className={inputClass} {...register('plannedAmount')} />
+            <Field label="Valor planejado" htmlFor="budget-amount" error={errors.plannedAmount?.message} className="sm:w-44">
+              <Controller
+                name="plannedAmount"
+                control={control}
+                render={({ field }) => (
+                  <CurrencyInput
+                    id="budget-amount"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    className={inputClass}
+                    aria-invalid={!!errors.plannedAmount}
+                  />
+                )}
+              />
             </Field>
             <Button type="submit" loading={createMutation.isPending}>
               Salvar
@@ -165,8 +176,8 @@ export function BudgetsSection() {
                   </div>
 
                   <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
-                    {currency.format(budget.spentAmount)}{' '}
-                    <span className="text-slate-400 dark:text-slate-500">de {currency.format(budget.plannedAmount)}</span>{' '}
+                    {formatBRL(budget.spentAmount)}{' '}
+                    <span className="text-slate-400 dark:text-slate-500">de {formatBRL(budget.plannedAmount)}</span>{' '}
                     <span className="text-slate-400 dark:text-slate-500">({budget.percentageUsed}%)</span>
                   </p>
                 </li>
