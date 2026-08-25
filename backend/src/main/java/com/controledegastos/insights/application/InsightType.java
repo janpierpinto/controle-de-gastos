@@ -5,4 +5,5 @@ public enum InsightType {
     UPCOMING_BILL,
     MONTH_COMPARISON,
     RECURRING_DETECTED,
+    ANOMALY_DETECTED,
 }

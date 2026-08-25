@@ -18,6 +18,7 @@ const typeIcon: Record<InsightType, typeof PieChartIcon> = {
   UPCOMING_BILL: FileTextIcon,
   MONTH_COMPARISON: TrendingUpIcon,
   RECURRING_DETECTED: HistoryIcon,
+  ANOMALY_DETECTED: AlertCircleIcon,
 }
 
 const severityStyle: Record<InsightSeverity, { icon: typeof AlertCircleIcon; iconTone: string; badge: string }> = {

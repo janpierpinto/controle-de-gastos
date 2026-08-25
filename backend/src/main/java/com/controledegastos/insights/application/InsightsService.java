@@ -6,6 +6,7 @@ import com.controledegastos.categories.CategoriesQueryApi;
 import com.controledegastos.transactions.TransactionSummary;
 import com.controledegastos.transactions.TransactionsQueryApi;
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.time.LocalDate;
@@ -33,6 +34,9 @@ public class InsightsService {
 
     private static final BigDecimal COMPARISON_THRESHOLD_PCT = BigDecimal.valueOf(20);
     private static final BigDecimal RECURRING_TOLERANCE_PCT = BigDecimal.valueOf(10);
+    private static final BigDecimal ANOMALY_STDDEV_MULTIPLIER = BigDecimal.valueOf(2);
+    private static final BigDecimal ANOMALY_MIN_RATIO = BigDecimal.valueOf(1.5);
+    private static final int ANOMALY_MIN_BASELINE_SIZE = 4;
     private static final NumberFormat CURRENCY_FORMAT = NumberFormat.getCurrencyInstance(Locale.of("pt", "BR"));
 
     private final BudgetsQueryApi budgetsQueryApi;
@@ -57,6 +61,7 @@ public class InsightsService {
         insights.addAll(billInsights());
         insights.addAll(monthComparisonInsights());
         insights.addAll(recurringInsights());
+        insights.addAll(anomalyInsights());
         insights.sort(Comparator.comparing(Insight::severity));
         return insights;
     }
@@ -202,6 +207,66 @@ public class InsightsService {
         return insights.stream().limit(5).toList();
     }
 
+    /**
+     * Flags current-month expenses that sit well outside a category's own
+     * recent history (mean + 2 standard deviations, with a 1.5x floor so a
+     * near-zero stddev on a very stable category doesn't flag tiny wobbles).
+     * Categories with fewer than ANOMALY_MIN_BASELINE_SIZE prior transactions
+     * are skipped — not enough history to call anything "abnormal".
+     */
+    private List<Insight> anomalyInsights() {
+        var currentMonthStart = YearMonth.now().atDay(1);
+        var from = currentMonthStart.minusMonths(6);
+        var to = LocalDate.now();
+
+        var byCategory = transactionsQueryApi.listInPeriod(from, to).stream()
+                .filter(t -> "EXPENSE".equals(t.type()) && t.categoryId() != null)
+                .collect(Collectors.groupingBy(TransactionSummary::categoryId));
+
+        var anomalies = new ArrayList<Anomaly>();
+        for (var transactions : byCategory.values()) {
+            var baseline = transactions.stream().filter(t -> t.occurredOn().isBefore(currentMonthStart)).toList();
+            var candidates = transactions.stream().filter(t -> !t.occurredOn().isBefore(currentMonthStart)).toList();
+            if (baseline.size() < ANOMALY_MIN_BASELINE_SIZE || candidates.isEmpty()) {
+                continue;
+            }
+
+            var mean = baseline.stream()
+                    .map(TransactionSummary::amount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add)
+                    .divide(BigDecimal.valueOf(baseline.size()), 4, RoundingMode.HALF_UP);
+            var variance = baseline.stream()
+                    .map(t -> t.amount().subtract(mean).pow(2))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add)
+                    .divide(BigDecimal.valueOf(baseline.size()), 4, RoundingMode.HALF_UP);
+            var stdDev = variance.signum() == 0 ? BigDecimal.ZERO : variance.sqrt(MathContext.DECIMAL64);
+            var threshold = mean.add(stdDev.multiply(ANOMALY_STDDEV_MULTIPLIER));
+            var floor = mean.multiply(ANOMALY_MIN_RATIO);
+
+            for (var candidate : candidates) {
+                if (candidate.amount().compareTo(threshold) > 0 && candidate.amount().compareTo(floor) > 0) {
+                    anomalies.add(new Anomaly(candidate, mean));
+                }
+            }
+        }
+
+        var names = categoriesQueryApi.namesByIds(anomalies.stream().map(a -> a.transaction().categoryId()).toList());
+
+        return anomalies.stream()
+                .sorted(Comparator.comparing((Anomaly a) -> a.transaction().amount().divide(a.mean(), 2, RoundingMode.HALF_UP)).reversed())
+                .limit(5)
+                .map(anomaly -> {
+                    var name = names.getOrDefault(anomaly.transaction().categoryId(), "categoria");
+                    return new Insight(
+                            InsightType.ANOMALY_DETECTED,
+                            Severity.WARNING,
+                            "Gasto fora do padrão em " + name,
+                            "Você gastou " + money(anomaly.transaction().amount()) + " em \"" + anomaly.transaction().description()
+                                    + "\" — bem acima da sua média de " + money(anomaly.mean()) + " em " + name + ".");
+                })
+                .toList();
+    }
+
     private Map<UUID, BigDecimal> totalsByCategory(List<TransactionSummary> transactions) {
         var totals = new HashMap<UUID, BigDecimal>();
         for (var transaction : transactions) {
@@ -222,5 +287,8 @@ public class InsightsService {
     }
 
     private record Occurrence(YearMonth month, BigDecimal amount, String rawDescription) {
+    }
+
+    private record Anomaly(TransactionSummary transaction, BigDecimal mean) {
     }
 }

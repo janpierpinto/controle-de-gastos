@@ -1,6 +1,6 @@
 import { apiRequest } from '../../lib/apiClient'
 
-export type InsightType = 'BUDGET_ALERT' | 'UPCOMING_BILL' | 'MONTH_COMPARISON' | 'RECURRING_DETECTED'
+export type InsightType = 'BUDGET_ALERT' | 'UPCOMING_BILL' | 'MONTH_COMPARISON' | 'RECURRING_DETECTED' | 'ANOMALY_DETECTED'
 export type InsightSeverity = 'DANGER' | 'WARNING' | 'INFO' | 'SUCCESS'
 
 export interface Insight {
