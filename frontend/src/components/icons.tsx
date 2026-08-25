@@ -106,6 +106,8 @@ export const TrashIcon = base(
 
 export const ChevronDownIcon = base(<polyline points="6 9 12 15 18 9" />)
 
+export const CheckIcon = base(<polyline points="20 6 9 17 4 12" />)
+
 export const SunIcon = base(
   <>
     <circle cx="12" cy="12" r="5" />
