@@ -108,6 +108,13 @@ export const ChevronDownIcon = base(<polyline points="6 9 12 15 18 9" />)
 
 export const CheckIcon = base(<polyline points="20 6 9 17 4 12" />)
 
+export const SearchIcon = base(
+  <>
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </>,
+)
+
 export const TagIcon = base(
   <>
     <path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3.24H4a1 1 0 0 0-1 1v5.59a2 2 0 0 0 .59 1.41l9.58 9.59a2 2 0 0 0 2.83 0l4.59-4.59a2 2 0 0 0 0-2.83Z" />
