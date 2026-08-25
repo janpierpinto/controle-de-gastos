@@ -1,6 +1,7 @@
 package com.controledegastos.transactions.application;
 
 import com.controledegastos.shared.tenancy.TenantContext;
+import com.controledegastos.transactions.TransactionsQueryApi;
 import com.controledegastos.transactions.domain.Transaction;
 import com.controledegastos.transactions.domain.TransactionType;
 import com.controledegastos.transactions.infrastructure.TransactionRepository;
@@ -14,7 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class TransactionService {
+public class TransactionService implements TransactionsQueryApi {
 
     private final TransactionRepository transactionRepository;
 
@@ -56,5 +57,11 @@ public class TransactionService {
     @Transactional
     public void delete(UUID id) {
         transactionRepository.delete(get(id));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal totalExpensesForCategoryInPeriod(UUID categoryId, LocalDate from, LocalDate to) {
+        return transactionRepository.sumAmountByCategoryAndTypeAndPeriod(categoryId, TransactionType.EXPENSE, from, to);
     }
 }

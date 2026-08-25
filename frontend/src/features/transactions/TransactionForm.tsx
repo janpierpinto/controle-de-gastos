@@ -41,6 +41,7 @@ export function TransactionForm() {
     mutationFn: createTransaction,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['budgets'] })
       reset({ description: '', amount: '', occurredOn: todayIso(), type: selectedType, categoryId: undefined })
     },
   })

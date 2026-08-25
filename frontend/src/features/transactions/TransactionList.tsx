@@ -10,7 +10,10 @@ export function TransactionList() {
 
   const deleteMutation = useMutation({
     mutationFn: deleteTransaction,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['budgets'] })
+    },
   })
 
   if (isLoading) return <p className="text-sm text-slate-500">Carregando…</p>

@@ -1,3 +1,4 @@
+import { BudgetsSection } from '../budgets/BudgetsSection'
 import { TransactionForm } from '../transactions/TransactionForm'
 import { TransactionList } from '../transactions/TransactionList'
 import { useAuthStore } from '../../stores/authStore'
@@ -17,6 +18,7 @@ export function DashboardPage() {
         </div>
       </div>
 
+      <BudgetsSection />
       <TransactionForm />
       <TransactionList />
     </div>
