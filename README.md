@@ -55,7 +55,9 @@ cd frontend && npm run lint && npm run build
 `RowLevelSecurityIT` e `AuthFlowIT` sobem um Postgres real via Testcontainers e
 validam, respectivamente, que o isolamento por tenant é aplicado pelo próprio
 banco (RLS) e que o fluxo completo de registro/login funciona pela stack HTTP
-real.
+real. Cada módulo (transações, orçamentos, cartões, contas a pagar, família,
+notificações, privacidade) tem seu próprio `*FlowIT` cobrindo o fluxo HTTP
+completo — 15 testes de integração ao todo, todos passando.
 
 ## Decisões de arquitetura
 
@@ -64,7 +66,17 @@ real.
 
 ## Roadmap
 
-Fase 0 (este commit) cobre setup, autenticação JWT e a base multi-tenant.
-Fases seguintes (MVP de transações/orçamentos, integração Pluggy, insights via
-IA, preparação para SaaS) estão detalhadas no plano de arquitetura da sessão
-que originou este projeto.
+- **Fase 0** — setup, autenticação JWT, base multi-tenant (RLS). ✅
+- **Fase 1 (MVP)** — transações manuais, categorias, orçamentos com alertas,
+  dashboard com gráfico, cartão de crédito manual (fatura mensal), contas a
+  pagar, módulo família (convites), dark mode, PWA instalável, push
+  notifications básico, LGPD básico (consentimento, audit log, meus dados).
+  ✅ Falta apenas o deploy real numa VPS (a infra em `infra/` já está pronta
+  para isso — falta só provisionar o servidor).
+- **Fase 2** — integração Open Finance (Pluggy), categorização automática,
+  insights por regras, split de despesas entre membros.
+- **Fase 3** — insights via IA generativa, forecasting, 2FA, relatórios.
+- **Fase 4** — preparação para SaaS multi-tenant em escala.
+
+Detalhes de cada fase no plano de arquitetura da sessão que originou este
+projeto.
