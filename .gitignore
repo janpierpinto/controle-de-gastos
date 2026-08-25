@@ -1,0 +1,17 @@
+# Backend
+backend/target/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/dev-dist/
+
+# Env / secrets
+infra/.env
+.env
+*.local
+
+# OS / IDE
+.DS_Store
+.idea/
+*.iml

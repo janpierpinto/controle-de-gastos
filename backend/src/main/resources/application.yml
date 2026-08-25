@@ -1,0 +1,56 @@
+spring:
+  application:
+    name: backend
+  # Two DB roles, on purpose (see infra/postgres/init and docs/adr/0001):
+  # Flyway migrates as the bootstrap/admin role (needs CREATE TABLE/POLICY);
+  # the application itself only ever connects as app_runtime, a restricted
+  # non-superuser role, so Postgres RLS is actually enforced at runtime and
+  # not silently bypassed the way it would be for a superuser connection.
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/controle_de_gastos}
+    username: ${DB_USERNAME:app_runtime}
+    password: ${DB_PASSWORD:app_runtime}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    url: ${DB_MIGRATION_URL:jdbc:postgresql://localhost:5432/controle_de_gastos}
+    user: ${DB_MIGRATION_USERNAME:controle_de_gastos_admin}
+    password: ${DB_MIGRATION_PASSWORD:controle_de_gastos_admin}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        default_schema: public
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,modulith
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:change-me-in-every-environment-this-default-is-not-secure}
+    access-token-ttl-minutes: ${JWT_ACCESS_TTL_MINUTES:15}
+    refresh-token-ttl-days: ${JWT_REFRESH_TTL_DAYS:30}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+
+logging:
+  level:
+    org.springframework.modulith: INFO
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url: jdbc:postgresql://postgres:5432/controle_de_gastos
+  flyway:
+    url: jdbc:postgresql://postgres:5432/controle_de_gastos

@@ -1,0 +1,13 @@
+# Local/dev: plain :80, no TLS provisioning attempted.
+# Production: replace ":80" with your real domain (e.g. "gastos.example.com")
+# and Caddy automatically provisions and renews a Let's Encrypt certificate —
+# no other change needed.
+:80 {
+	handle /api/* {
+		reverse_proxy backend:8080
+	}
+
+	handle {
+		reverse_proxy frontend:80
+	}
+}
