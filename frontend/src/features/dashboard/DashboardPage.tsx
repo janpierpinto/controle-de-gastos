@@ -1,3 +1,4 @@
+import { BillsSection } from '../bills/BillsSection'
 import { BudgetsSection } from '../budgets/BudgetsSection'
 import { CreditCardsSection } from '../creditcards/CreditCardsSection'
 import { TransactionForm } from '../transactions/TransactionForm'
@@ -21,6 +22,7 @@ export function DashboardPage() {
       </div>
 
       <CategoryBreakdownChart />
+      <BillsSection />
       <CreditCardsSection />
       <BudgetsSection />
       <TransactionForm />
