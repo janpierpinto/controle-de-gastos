@@ -6,8 +6,9 @@ import com.controledegastos.shared.audit.AuditLog;
 import com.controledegastos.shared.audit.AuditLogRepository;
 import com.controledegastos.shared.audit.AuditService;
 import com.controledegastos.shared.tenancy.UserContext;
-import java.util.List;
 import java.util.NoSuchElementException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,8 +38,8 @@ public class PrivacyService {
     }
 
     @Transactional(readOnly = true)
-    public List<AuditLog> listAuditLog() {
-        return auditLogRepository.findAllByOrderByOccurredAtDesc();
+    public Page<AuditLog> listAuditLog(Pageable pageable) {
+        return auditLogRepository.findAllByOrderByOccurredAtDesc(pageable);
     }
 
     @Transactional(readOnly = true)

@@ -3,7 +3,8 @@ package com.controledegastos.identity.web;
 import com.controledegastos.identity.application.MyDataExport;
 import com.controledegastos.identity.application.PrivacyService;
 import com.controledegastos.identity.web.dto.AuditLogResponse;
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -34,7 +35,7 @@ public class PrivacyController {
 
     @GetMapping("/audit-log")
     @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
-    public List<AuditLogResponse> auditLog() {
-        return privacyService.listAuditLog().stream().map(AuditLogResponse::from).toList();
+    public Page<AuditLogResponse> auditLog(Pageable pageable) {
+        return privacyService.listAuditLog(pageable).map(AuditLogResponse::from);
     }
 }
