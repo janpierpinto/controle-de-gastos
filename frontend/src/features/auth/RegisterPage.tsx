@@ -6,7 +6,7 @@ import { z } from 'zod'
 import { ApiError } from '../../lib/apiClient'
 import { useAuthStore } from '../../stores/authStore'
 import { AuthLayout } from './AuthLayout'
-import { register as registerRequest } from './api'
+import { assertTokens, register as registerRequest } from './api'
 
 const schema = z.object({
   tenantName: z.string().min(1, 'obrigatório'),
@@ -36,7 +36,7 @@ export function RegisterPage() {
   const mutation = useMutation({
     mutationFn: registerRequest,
     onSuccess: (data) => {
-      setSession(data)
+      setSession(assertTokens(data))
       navigate('/')
     },
   })

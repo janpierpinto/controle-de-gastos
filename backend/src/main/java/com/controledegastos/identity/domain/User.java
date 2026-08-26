@@ -58,6 +58,21 @@ public class User {
         this.email = "deleted-" + this.id + "@deleted.local";
     }
 
+    /** Stores a not-yet-confirmed secret; mfaEnabled stays false until {@link #enableMfa()}. */
+    public void setPendingMfaSecret(String secret) {
+        this.mfaSecret = secret;
+        this.mfaEnabled = false;
+    }
+
+    public void enableMfa() {
+        this.mfaEnabled = true;
+    }
+
+    public void disableMfa() {
+        this.mfaSecret = null;
+        this.mfaEnabled = false;
+    }
+
     public UUID getId() {
         return id;
     }
@@ -76,6 +91,10 @@ public class User {
 
     public boolean isMfaEnabled() {
         return mfaEnabled;
+    }
+
+    public String getMfaSecret() {
+        return mfaSecret;
     }
 
     public UserStatus getStatus() {

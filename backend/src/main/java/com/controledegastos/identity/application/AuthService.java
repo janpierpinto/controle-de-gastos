@@ -12,6 +12,7 @@ import com.controledegastos.identity.infrastructure.TenantMemberRepository;
 import com.controledegastos.identity.infrastructure.TenantRepository;
 import com.controledegastos.identity.infrastructure.UserRepository;
 import com.controledegastos.identity.security.JwtService;
+import com.controledegastos.identity.security.TotpService;
 import com.controledegastos.shared.audit.AuditService;
 import com.controledegastos.shared.tenancy.TenantContext;
 import com.controledegastos.shared.tenancy.UserContext;
@@ -35,6 +36,7 @@ public class AuthService {
     private final ConsentRepository consentRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final TotpService totpService;
     private final AuditService auditService;
     private final TransactionTemplate transactionTemplate;
 
@@ -45,6 +47,7 @@ public class AuthService {
             ConsentRepository consentRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
+            TotpService totpService,
             AuditService auditService,
             PlatformTransactionManager transactionManager) {
         this.tenantRepository = tenantRepository;
@@ -53,6 +56,7 @@ public class AuthService {
         this.consentRepository = consentRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.totpService = totpService;
         this.auditService = auditService;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
@@ -99,7 +103,7 @@ public class AuthService {
      * UserContext to actually reach the second one. See the note on
      * {@link #register}.
      */
-    public AuthResult login(String email, String password) {
+    public LoginOutcome login(String email, String password) {
         var user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BadCredentialsException("Credenciais inválidas"));
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
@@ -109,11 +113,36 @@ public class AuthService {
             throw new BadCredentialsException("Conta desativada");
         }
 
+        if (user.isMfaEnabled()) {
+            return new LoginOutcome.MfaRequired(jwtService.generateMfaToken(user.getId()));
+        }
+        return new LoginOutcome.Success(resolveTenantAndIssueTokens(user.getId()));
+    }
+
+    /**
+     * Second step of login when the account has MFA enabled: exchanges a
+     * short-lived MFA challenge token plus a TOTP code for the real
+     * access/refresh tokens.
+     */
+    public AuthResult completeMfaLogin(String mfaToken, String code) {
+        var claims = jwtService.parse(mfaToken);
+        if (!jwtService.isMfaToken(claims)) {
+            throw new BadCredentialsException("Token de verificação inválido");
+        }
+        var userId = jwtService.userIdOf(claims);
+        var user = userRepository.findById(userId).orElseThrow(() -> new BadCredentialsException("Credenciais inválidas"));
+        if (!user.isMfaEnabled() || !totpService.verifyCode(user.getMfaSecret(), code)) {
+            throw new BadCredentialsException("Código inválido");
+        }
+        return resolveTenantAndIssueTokens(userId);
+    }
+
+    private AuthResult resolveTenantAndIssueTokens(java.util.UUID userId) {
         // No tenant selected yet: rely on the tenant_members RLS clause that
         // exposes a user's own memberships via app.current_user.
-        UserContext.set(user.getId());
+        UserContext.set(userId);
         try {
-            var memberships = tenantMemberRepository.findByUserIdOrderByJoinedAtDesc(user.getId());
+            var memberships = tenantMemberRepository.findByUserIdOrderByJoinedAtDesc(userId);
             if (memberships.isEmpty()) {
                 throw new BadCredentialsException("Usuário sem tenant associado");
             }
@@ -121,8 +150,8 @@ public class AuthService {
             // cliente escolher em vez de assumir o vínculo mais recente.
             var membership = memberships.get(0);
             TenantContext.set(membership.getTenant().getId());
-            auditService.record("LOGIN", "USER", user.getId());
-            return issueTokens(user.getId(), membership.getTenant().getId(), membership.getRole());
+            auditService.record("LOGIN", "USER", userId);
+            return issueTokens(userId, membership.getTenant().getId(), membership.getRole());
         } finally {
             UserContext.clear();
             TenantContext.clear();

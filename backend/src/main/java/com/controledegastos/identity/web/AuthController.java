@@ -3,6 +3,7 @@ package com.controledegastos.identity.web;
 import com.controledegastos.identity.application.AuthService;
 import com.controledegastos.identity.web.dto.AuthResponse;
 import com.controledegastos.identity.web.dto.LoginRequest;
+import com.controledegastos.identity.web.dto.MfaVerifyRequest;
 import com.controledegastos.identity.web.dto.RefreshRequest;
 import com.controledegastos.identity.web.dto.RegisterRequest;
 import jakarta.validation.Valid;
@@ -32,7 +33,13 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        var result = authService.login(request.email(), request.password());
+        var outcome = authService.login(request.email(), request.password());
+        return ResponseEntity.ok(AuthResponse.from(outcome));
+    }
+
+    @PostMapping("/2fa/verify")
+    public ResponseEntity<AuthResponse> verifyMfa(@Valid @RequestBody MfaVerifyRequest request) {
+        var result = authService.completeMfaLogin(request.mfaToken(), request.code());
         return ResponseEntity.ok(AuthResponse.from(result));
     }
 
