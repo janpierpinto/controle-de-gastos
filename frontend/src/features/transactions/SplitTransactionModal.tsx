@@ -4,12 +4,14 @@ import { Button } from '../../components/ui/Button'
 import { CurrencyInput } from '../../components/ui/CurrencyInput'
 import { checkboxClass, inputClass } from '../../components/ui/formStyles'
 import { Modal } from '../../components/ui/Modal'
-import { formatBRL } from '../../lib/currency'
+import { formatCurrency } from '../../lib/currency'
 import { initials } from '../../lib/initials'
 import { listMembers } from '../family/api'
+import { useCurrency } from '../family/useCurrency'
 import { clearSplits, listSplits, setSplits, type Transaction } from './api'
 
 export function SplitTransactionModal({ transaction, onClose }: { transaction: Transaction; onClose: () => void }) {
+  const currency = useCurrency()
   const queryClient = useQueryClient()
   const { data: members } = useQuery({ queryKey: ['family', 'members'], queryFn: listMembers })
   const { data: existingSplits } = useQuery({
@@ -83,7 +85,7 @@ export function SplitTransactionModal({ transaction, onClose }: { transaction: T
       <div className="space-y-4">
         <div>
           <p className="text-sm font-medium text-slate-900 dark:text-white">{transaction.description}</p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">{formatBRL(transaction.amount)}</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{formatCurrency(transaction.amount, currency)}</p>
         </div>
 
         <div className="max-h-64 space-y-2 overflow-y-auto">
@@ -112,6 +114,7 @@ export function SplitTransactionModal({ transaction, onClose }: { transaction: T
                   className={`${inputClass} w-32 py-1.5`}
                   aria-label={`Valor de ${member.name}`}
                   disabled={!checked}
+                  currency={currency}
                 />
               </div>
             )
@@ -133,8 +136,8 @@ export function SplitTransactionModal({ transaction, onClose }: { transaction: T
             {balanced
               ? 'Valores batem'
               : remainderCents > 0
-                ? `Faltam ${formatBRL(remainderCents / 100)}`
-                : `Excede em ${formatBRL(Math.abs(remainderCents) / 100)}`}
+                ? `Faltam ${formatCurrency(remainderCents / 100, currency)}`
+                : `Excede em ${formatCurrency(Math.abs(remainderCents) / 100, currency)}`}
           </p>
         </div>
 

@@ -9,6 +9,7 @@ import { inputClass, labelClass } from '../../components/ui/formStyles'
 import { TrendingDownIcon, TrendingUpIcon } from '../../components/icons'
 import { CategorySelect } from '../categories/CategorySelect'
 import { listCreditCards } from '../creditcards/api'
+import { useCurrency } from '../family/useCurrency'
 import { createTransaction } from './api'
 
 const schema = z.object({
@@ -25,6 +26,7 @@ type FormValues = z.infer<typeof schema>
 const todayIso = () => new Date().toISOString().slice(0, 10)
 
 export function TransactionForm() {
+  const currency = useCurrency()
   const queryClient = useQueryClient()
   const { data: creditCards } = useQuery({ queryKey: ['credit-cards'], queryFn: () => listCreditCards() })
 
@@ -125,6 +127,7 @@ export function TransactionForm() {
                 onBlur={field.onBlur}
                 className={inputClass}
                 aria-invalid={!!errors.amount}
+                currency={currency}
               />
             )}
           />

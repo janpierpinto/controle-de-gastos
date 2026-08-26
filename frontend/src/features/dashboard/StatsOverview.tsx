@@ -2,8 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { Card } from '../../components/ui/Card'
 import { AlertCircleIcon, TrendingDownIcon, TrendingUpIcon, WalletIcon } from '../../components/icons'
 import { currentMonthEnd, currentMonthStart } from '../../lib/date'
-import { formatBRL } from '../../lib/currency'
+import { formatCurrency } from '../../lib/currency'
 import { listBills } from '../bills/api'
+import { useCurrency } from '../family/useCurrency'
 import { listTransactionsByPeriod } from '../transactions/api'
 
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' })
@@ -42,6 +43,7 @@ function StatCard({
 }
 
 export function StatsOverview() {
+  const currency = useCurrency()
   const from = currentMonthStart()
   const to = currentMonthEnd()
 
@@ -76,20 +78,20 @@ export function StatsOverview() {
         icon={<WalletIcon className="h-5 w-5" />}
         iconTone="bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400"
         label="Saldo do mês"
-        value={formatBRL(balance)}
+        value={formatCurrency(balance, currency)}
         valueTone={balance >= 0 ? 'positive' : 'negative'}
       />
       <StatCard
         icon={<TrendingUpIcon className="h-5 w-5" />}
         iconTone="bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400"
         label="Receitas"
-        value={formatBRL(income)}
+        value={formatCurrency(income, currency)}
       />
       <StatCard
         icon={<TrendingDownIcon className="h-5 w-5" />}
         iconTone="bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
         label="Gastos"
-        value={formatBRL(expense)}
+        value={formatCurrency(expense, currency)}
       />
       <StatCard
         icon={<AlertCircleIcon className="h-5 w-5" />}

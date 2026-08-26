@@ -10,7 +10,8 @@ import { Field } from '../../components/ui/Field'
 import { inputClass } from '../../components/ui/formStyles'
 import { CreditCardIcon, PlusIcon, TrashIcon, XIcon } from '../../components/icons'
 import { currentMonthStart } from '../../lib/date'
-import { formatBRL } from '../../lib/currency'
+import { formatCurrency } from '../../lib/currency'
+import { useCurrency } from '../family/useCurrency'
 import { createCreditCard, deleteCreditCard, listCreditCards } from './api'
 
 const schema = z.object({
@@ -30,6 +31,7 @@ const CARD_GRADIENTS = [
 ]
 
 export function CreditCardsSection() {
+  const currency = useCurrency()
   const month = currentMonthStart()
   const queryClient = useQueryClient()
   const [showForm, setShowForm] = useState(false)
@@ -156,7 +158,7 @@ export function CreditCardsSection() {
 
                 <div className="relative">
                   <p className="text-xs text-white/70">Fatura do mês</p>
-                  <p className="text-xl font-bold">{formatBRL(card.invoiceAmount ?? 0)}</p>
+                  <p className="text-xl font-bold">{formatCurrency(card.invoiceAmount ?? 0, currency)}</p>
                   <p className="mt-1 text-xs text-white/70">
                     Fecha dia {card.closingDay} · vence dia {card.dueDay}
                   </p>

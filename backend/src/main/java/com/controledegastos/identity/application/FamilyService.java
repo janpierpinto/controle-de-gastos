@@ -1,5 +1,6 @@
 package com.controledegastos.identity.application;
 
+import com.controledegastos.identity.TenantQueryApi;
 import com.controledegastos.identity.domain.Invitation;
 import com.controledegastos.identity.domain.InvitationStatus;
 import com.controledegastos.identity.domain.MemberRole;
@@ -20,6 +21,7 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,10 +29,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class FamilyService {
+public class FamilyService implements TenantQueryApi {
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final Duration INVITATION_TTL = Duration.ofDays(7);
+    private static final Set<String> SUPPORTED_CURRENCIES = Set.of("BRL", "USD", "EUR", "GBP");
 
     private final TenantRepository tenantRepository;
     private final TenantMemberRepository tenantMemberRepository;
@@ -129,6 +132,27 @@ public class FamilyService {
         }
         tenantMemberRepository.delete(member);
         auditService.record("MEMBER_REMOVED", "TENANT_MEMBER", tenantMemberId);
+    }
+
+    @Transactional(readOnly = true)
+    public String getCurrency() {
+        return tenantRepository.findById(TenantContext.get()).orElseThrow(NoSuchElementException::new).getCurrency();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public String currentTenantCurrency() {
+        return getCurrency();
+    }
+
+    @Transactional
+    public void updateCurrency(String currency) {
+        if (!SUPPORTED_CURRENCIES.contains(currency)) {
+            throw new IllegalArgumentException("Moeda não suportada");
+        }
+        var tenant = tenantRepository.findById(TenantContext.get()).orElseThrow(NoSuchElementException::new);
+        tenant.setCurrency(currency);
+        auditService.record("TENANT_CURRENCY_UPDATED", "TENANT", tenant.getId());
     }
 
     private String generateToken() {

@@ -4,12 +4,14 @@ import { Card, CardBody, CardHeader } from '../../components/ui/Card'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { PieChartIcon } from '../../components/icons'
 import { currentMonthEnd, currentMonthStart } from '../../lib/date'
-import { formatBRL } from '../../lib/currency'
+import { formatCurrency } from '../../lib/currency'
 import { listCategories } from '../categories/api'
+import { useCurrency } from '../family/useCurrency'
 import { listTransactionsByPeriod } from '../transactions/api'
 const FALLBACK_COLOR = '#64748b'
 
 export function CategoryBreakdownChart() {
+  const currency = useCurrency()
   const from = currentMonthStart()
   const to = currentMonthEnd()
 
@@ -60,7 +62,7 @@ export function CategoryBreakdownChart() {
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(value) => formatBRL(Number(value))}
+                  formatter={(value) => formatCurrency(Number(value), currency)}
                   contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.92)', border: 'none', borderRadius: 8, color: '#fff' }}
                   itemStyle={{ color: '#fff' }}
                 />

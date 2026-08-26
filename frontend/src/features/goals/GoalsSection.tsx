@@ -11,7 +11,8 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import { Field } from '../../components/ui/Field'
 import { inputClass } from '../../components/ui/formStyles'
 import { CheckCircleIcon, PlusIcon, TargetIcon, TrashIcon, XIcon } from '../../components/icons'
-import { formatBRL } from '../../lib/currency'
+import { formatCurrency } from '../../lib/currency'
+import { useCurrency } from '../family/useCurrency'
 import { contributeToGoal, createGoal, deleteGoal, listGoals, type Goal } from './api'
 
 const schema = z.object({
@@ -25,6 +26,7 @@ type FormValues = z.infer<typeof schema>
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
 function GoalContributionForm({ goal, onDone }: { goal: Goal; onDone: () => void }) {
+  const currency = useCurrency()
   const queryClient = useQueryClient()
   const [amount, setAmount] = useState(0)
 
@@ -44,6 +46,7 @@ function GoalContributionForm({ goal, onDone }: { goal: Goal; onDone: () => void
         onChange={setAmount}
         className={`${inputClass} py-2`}
         aria-label="Valor a adicionar"
+        currency={currency}
       />
       <Button
         type="button"
@@ -62,6 +65,7 @@ function GoalContributionForm({ goal, onDone }: { goal: Goal; onDone: () => void
 }
 
 export function GoalsSection() {
+  const currency = useCurrency()
   const queryClient = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [contributingId, setContributingId] = useState<string | null>(null)
@@ -131,6 +135,7 @@ export function GoalsSection() {
                     onBlur={field.onBlur}
                     className={inputClass}
                     aria-invalid={!!errors.targetAmount}
+                    currency={currency}
                   />
                 )}
               />
@@ -200,8 +205,8 @@ export function GoalsSection() {
                   </div>
 
                   <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
-                    {formatBRL(goal.currentAmount)}{' '}
-                    <span className="text-slate-400 dark:text-slate-500">de {formatBRL(goal.targetAmount)}</span>{' '}
+                    {formatCurrency(goal.currentAmount, currency)}{' '}
+                    <span className="text-slate-400 dark:text-slate-500">de {formatCurrency(goal.targetAmount, currency)}</span>{' '}
                     <span className="text-slate-400 dark:text-slate-500">({goal.percentageComplete}%)</span>
                   </p>
 

@@ -10,9 +10,11 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import { Field } from '../../components/ui/Field'
 import { inputClass } from '../../components/ui/formStyles'
 import { PlusIcon, TrashIcon, UsersIcon, XIcon } from '../../components/icons'
+import type { CurrencyCode } from '../../lib/currency'
 import { initials } from '../../lib/initials'
 import { useAuthStore } from '../../stores/authStore'
-import { createInvitation, listInvitations, listMembers, removeMember, type MemberRole } from './api'
+import { createInvitation, getTenantSettings, listInvitations, listMembers, removeMember, updateTenantSettings, type MemberRole } from './api'
+import { CurrencySelect } from './CurrencySelect'
 
 const schema = z.object({
   email: z.string().email('e-mail inválido'),
@@ -60,6 +62,13 @@ export function FamilySection() {
     queryFn: listInvitations,
     enabled: canManage,
   })
+  const { data: settings } = useQuery({ queryKey: ['tenant-settings'], queryFn: getTenantSettings })
+  const currency = (settings?.currency as CurrencyCode | undefined) ?? 'BRL'
+
+  const updateCurrencyMutation = useMutation({
+    mutationFn: (value: CurrencyCode) => updateTenantSettings(value),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tenant-settings'] }),
+  })
 
   const {
     register,
@@ -99,6 +108,21 @@ export function FamilySection() {
       />
 
       <CardBody className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 p-3.5 dark:border-slate-800">
+          <div>
+            <p className="text-sm font-medium text-slate-900 dark:text-white">Moeda</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Usada em todos os valores do sistema, incluindo relatórios</p>
+          </div>
+          <div className="w-full sm:w-56">
+            <CurrencySelect
+              id="tenant-currency"
+              value={currency}
+              onChange={(value) => updateCurrencyMutation.mutate(value)}
+              disabled={!canManage || updateCurrencyMutation.isPending}
+            />
+          </div>
+        </div>
+
         {showForm && (
           <form
             onSubmit={handleSubmit((values) => inviteMutation.mutate(values))}

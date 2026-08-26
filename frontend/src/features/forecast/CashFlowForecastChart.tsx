@@ -2,7 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Card, CardBody, CardHeader } from '../../components/ui/Card'
 import { TrendingUpIcon } from '../../components/icons'
-import { formatBRL } from '../../lib/currency'
+import { formatCurrency } from '../../lib/currency'
+import { useCurrency } from '../family/useCurrency'
 import { listForecast } from './api'
 
 const monthFormatter = new Intl.DateTimeFormat('pt-BR', { month: 'short', year: '2-digit' })
@@ -13,6 +14,7 @@ function formatMonthLabel(month: string) {
 }
 
 export function CashFlowForecastChart() {
+  const currency = useCurrency()
   const { data: forecast, isLoading } = useQuery({ queryKey: ['forecast'], queryFn: () => listForecast(3) })
 
   const data = (forecast ?? []).map((item) => ({
@@ -39,9 +41,9 @@ export function CashFlowForecastChart() {
               <ComposedChart data={data}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                 <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} tickFormatter={(value: number) => formatBRL(value)} width={90} />
+                <YAxis tick={{ fontSize: 12 }} tickFormatter={(value: number) => formatCurrency(value, currency)} width={90} />
                 <Tooltip
-                  formatter={(value) => formatBRL(Number(value))}
+                  formatter={(value) => formatCurrency(Number(value), currency)}
                   contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.92)', border: 'none', borderRadius: 8, color: '#fff' }}
                   itemStyle={{ color: '#fff' }}
                 />

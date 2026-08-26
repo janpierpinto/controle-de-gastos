@@ -6,6 +6,8 @@ import com.controledegastos.identity.web.dto.AuthResponse;
 import com.controledegastos.identity.web.dto.InvitationResponse;
 import com.controledegastos.identity.web.dto.InviteRequest;
 import com.controledegastos.identity.web.dto.MemberResponse;
+import com.controledegastos.identity.web.dto.TenantSettingsResponse;
+import com.controledegastos.identity.web.dto.UpdateTenantSettingsRequest;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -60,5 +63,17 @@ public class FamilyController {
     public ResponseEntity<Void> removeMember(@PathVariable UUID id) {
         familyService.removeMember(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/settings")
+    public TenantSettingsResponse getSettings() {
+        return new TenantSettingsResponse(familyService.getCurrency());
+    }
+
+    @PutMapping("/settings")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
+    public TenantSettingsResponse updateSettings(@Valid @RequestBody UpdateTenantSettingsRequest request) {
+        familyService.updateCurrency(request.currency());
+        return new TenantSettingsResponse(request.currency());
     }
 }

@@ -2,14 +2,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { InboxIcon, TrashIcon, TrendingDownIcon, TrendingUpIcon, UsersIcon } from '../../components/icons'
-import { formatBRL } from '../../lib/currency'
+import { formatCurrency } from '../../lib/currency'
 import { listCategories } from '../categories/api'
+import { useCurrency } from '../family/useCurrency'
 import { deleteTransaction, listTransactions, type Transaction } from './api'
 import { SplitTransactionModal } from './SplitTransactionModal'
 
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
 export function TransactionList() {
+  const currency = useCurrency()
   const queryClient = useQueryClient()
   const { data, isLoading } = useQuery({ queryKey: ['transactions'], queryFn: listTransactions })
   const { data: categories } = useQuery({ queryKey: ['categories'], queryFn: listCategories })
@@ -75,7 +77,7 @@ export function TransactionList() {
 
             <span className={`shrink-0 font-semibold ${isIncome ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
               {isIncome ? '+' : '-'}
-              {formatBRL(transaction.amount)}
+              {formatCurrency(transaction.amount, currency)}
             </span>
 
             <button

@@ -47,3 +47,15 @@ export function acceptInvitation(token: string, name: string, password: string) 
     auth: false,
   })
 }
+
+export interface TenantSettings {
+  currency: string
+}
+
+export function getTenantSettings() {
+  return apiRequest<TenantSettings>('/family/settings')
+}
+
+export function updateTenantSettings(currency: string) {
+  return apiRequest<TenantSettings>('/family/settings', { method: 'PUT', body: { currency } })
+}

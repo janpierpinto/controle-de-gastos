@@ -1,5 +1,5 @@
 import type { ChangeEvent } from 'react'
-import { formatCentsAsDecimal } from '../../lib/currency'
+import { currencySymbol, formatCentsAsDecimal, type CurrencyCode } from '../../lib/currency'
 import { inputClass } from './formStyles'
 
 interface CurrencyInputProps {
@@ -10,6 +10,7 @@ interface CurrencyInputProps {
   placeholder?: string
   className?: string
   disabled?: boolean
+  currency?: CurrencyCode
   'aria-invalid'?: boolean
   'aria-describedby'?: string
   'aria-label'?: string
@@ -30,10 +31,11 @@ export function CurrencyInput({
   placeholder = '0,00',
   className = '',
   disabled = false,
+  currency = 'BRL',
   ...aria
 }: CurrencyInputProps) {
   const digits = value ? Math.round(value * 100).toString() : ''
-  const display = digits === '' ? '' : formatCentsAsDecimal(digits)
+  const display = digits === '' ? '' : formatCentsAsDecimal(digits, currency)
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const rawDigits = event.target.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '')
@@ -42,7 +44,9 @@ export function CurrencyInput({
 
   return (
     <div className="relative">
-      <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-sm text-slate-400">R$</span>
+      <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-sm text-slate-400">
+        {currencySymbol(currency)}
+      </span>
       <input
         id={id}
         type="text"

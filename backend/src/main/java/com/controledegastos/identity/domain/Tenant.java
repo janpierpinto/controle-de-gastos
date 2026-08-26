@@ -29,6 +29,9 @@ public class Tenant {
     @Column(name = "dpo_contact_email")
     private String dpoContactEmail;
 
+    @Column(nullable = false, length = 3)
+    private String currency = "BRL";
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
@@ -62,6 +65,14 @@ public class Tenant {
 
     public void setDpoContactEmail(String dpoContactEmail) {
         this.dpoContactEmail = dpoContactEmail;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(String currency) {
+        this.currency = currency;
     }
 
     public Instant getCreatedAt() {

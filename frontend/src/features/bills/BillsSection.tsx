@@ -11,7 +11,8 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import { Field } from '../../components/ui/Field'
 import { checkboxClass, inputClass } from '../../components/ui/formStyles'
 import { CheckCircleIcon, FileTextIcon, PlusIcon, TrashIcon, XIcon } from '../../components/icons'
-import { formatBRL } from '../../lib/currency'
+import { formatCurrency } from '../../lib/currency'
+import { useCurrency } from '../family/useCurrency'
 import { createBill, deleteBill, listBills, markBillPaid } from './api'
 
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -26,6 +27,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>
 
 export function BillsSection() {
+  const currency = useCurrency()
   const queryClient = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const { data: bills, isLoading } = useQuery({ queryKey: ['bills'], queryFn: listBills })
@@ -104,6 +106,7 @@ export function BillsSection() {
                     onBlur={field.onBlur}
                     className={inputClass}
                     aria-invalid={!!errors.amount}
+                    currency={currency}
                   />
                 )}
               />
@@ -166,7 +169,7 @@ export function BillsSection() {
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <span className="font-semibold text-slate-900 dark:text-white">{formatBRL(bill.amount)}</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">{formatCurrency(bill.amount, currency)}</span>
                   <Button size="sm" onClick={() => payMutation.mutate(bill.id)} loading={payMutation.isPending && payMutation.variables === bill.id}>
                     Pagar
                   </Button>

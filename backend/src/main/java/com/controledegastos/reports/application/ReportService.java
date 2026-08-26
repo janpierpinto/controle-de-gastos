@@ -5,6 +5,7 @@ import com.controledegastos.bills.BillsQueryApi;
 import com.controledegastos.budgets.BudgetAlert;
 import com.controledegastos.budgets.BudgetsQueryApi;
 import com.controledegastos.categories.CategoriesQueryApi;
+import com.controledegastos.identity.TenantQueryApi;
 import com.controledegastos.transactions.TransactionSummary;
 import com.controledegastos.transactions.TransactionsQueryApi;
 import com.lowagie.text.BadElementException;
@@ -61,8 +62,16 @@ import org.springframework.stereotype.Service;
 @Service
 public class ReportService {
 
-    private static final NumberFormat CURRENCY_FORMAT = NumberFormat.getCurrencyInstance(Locale.of("pt", "BR"));
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+    /**
+     * ReportService is a singleton bean shared across concurrent requests, so
+     * the tenant's currency (resolved once per report, in render()) can't be
+     * a plain instance field — same reasoning as TenantContext/UserContext
+     * elsewhere in this codebase, reused here for the same kind of
+     * per-request-not-per-instance state.
+     */
+    private static final ThreadLocal<NumberFormat> CURRENT_MONEY_FORMAT = new ThreadLocal<>();
 
     private static final Color BRAND_INDIGO = new Color(79, 70, 229);
     private static final Color BRAND_INDIGO_LIGHT = new Color(99, 102, 241);
@@ -78,16 +87,19 @@ public class ReportService {
     private final CategoriesQueryApi categoriesQueryApi;
     private final BudgetsQueryApi budgetsQueryApi;
     private final BillsQueryApi billsQueryApi;
+    private final TenantQueryApi tenantQueryApi;
 
     public ReportService(
             TransactionsQueryApi transactionsQueryApi,
             CategoriesQueryApi categoriesQueryApi,
             BudgetsQueryApi budgetsQueryApi,
-            BillsQueryApi billsQueryApi) {
+            BillsQueryApi billsQueryApi,
+            TenantQueryApi tenantQueryApi) {
         this.transactionsQueryApi = transactionsQueryApi;
         this.categoriesQueryApi = categoriesQueryApi;
         this.budgetsQueryApi = budgetsQueryApi;
         this.billsQueryApi = billsQueryApi;
+        this.tenantQueryApi = tenantQueryApi;
     }
 
     public byte[] monthlyReport(LocalDate month) {
@@ -228,6 +240,7 @@ public class ReportService {
     }
 
     private byte[] render(String title, String subtitle, DocumentBody body) {
+        CURRENT_MONEY_FORMAT.set(currencyFormat(tenantQueryApi.currentTenantCurrency()));
         try {
             var output = new ByteArrayOutputStream();
             var document = new Document(PageSize.A4, 40, 40, 100, 56);
@@ -246,7 +259,19 @@ public class ReportService {
             return output.toByteArray();
         } catch (DocumentException e) {
             throw new IllegalStateException("Falha ao gerar relatório PDF", e);
+        } finally {
+            CURRENT_MONEY_FORMAT.remove();
         }
+    }
+
+    private NumberFormat currencyFormat(String currencyCode) {
+        var locale = switch (currencyCode) {
+            case "USD" -> Locale.of("en", "US");
+            case "EUR" -> Locale.of("de", "DE");
+            case "GBP" -> Locale.of("en", "GB");
+            default -> Locale.of("pt", "BR");
+        };
+        return NumberFormat.getCurrencyInstance(locale);
     }
 
     private PdfPTable header(String title, String subtitle) throws DocumentException {
@@ -610,7 +635,7 @@ public class ReportService {
     }
 
     private String money(BigDecimal value) {
-        return CURRENCY_FORMAT.format(value);
+        return CURRENT_MONEY_FORMAT.get().format(value);
     }
 
     private String capitalize(String value) {

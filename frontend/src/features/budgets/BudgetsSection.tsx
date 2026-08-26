@@ -12,9 +12,10 @@ import { Field } from '../../components/ui/Field'
 import { inputClass } from '../../components/ui/formStyles'
 import { PieChartIcon, PlusIcon, TrashIcon, XIcon } from '../../components/icons'
 import { currentMonthStart } from '../../lib/date'
-import { formatBRL } from '../../lib/currency'
+import { formatCurrency } from '../../lib/currency'
 import { CategorySelect } from '../categories/CategorySelect'
 import { listCategories } from '../categories/api'
+import { useCurrency } from '../family/useCurrency'
 import { createBudget, deleteBudget, listBudgets } from './api'
 
 const schema = z.object({
@@ -25,6 +26,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>
 
 export function BudgetsSection() {
+  const currency = useCurrency()
   const month = currentMonthStart()
   const queryClient = useQueryClient()
   const [showForm, setShowForm] = useState(false)
@@ -120,6 +122,7 @@ export function BudgetsSection() {
                     onBlur={field.onBlur}
                     className={inputClass}
                     aria-invalid={!!errors.plannedAmount}
+                    currency={currency}
                   />
                 )}
               />
@@ -182,8 +185,8 @@ export function BudgetsSection() {
                   </div>
 
                   <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
-                    {formatBRL(budget.spentAmount)}{' '}
-                    <span className="text-slate-400 dark:text-slate-500">de {formatBRL(budget.plannedAmount)}</span>{' '}
+                    {formatCurrency(budget.spentAmount, currency)}{' '}
+                    <span className="text-slate-400 dark:text-slate-500">de {formatCurrency(budget.plannedAmount, currency)}</span>{' '}
                     <span className="text-slate-400 dark:text-slate-500">({budget.percentageUsed}%)</span>
                   </p>
                 </li>
