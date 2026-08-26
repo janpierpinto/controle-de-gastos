@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button'
 import { CurrencyInput } from '../../components/ui/CurrencyInput'
 import { Field } from '../../components/ui/Field'
 import { inputClass, labelClass } from '../../components/ui/formStyles'
+import { SimpleSelect } from '../../components/ui/SimpleSelect'
 import { TrendingDownIcon, TrendingUpIcon } from '../../components/icons'
 import { CategorySelect } from '../categories/CategorySelect'
 import { listCreditCards } from '../creditcards/api'
@@ -151,14 +152,18 @@ export function TransactionForm() {
 
         {creditCards && creditCards.length > 0 && (
           <Field label="Cartão" htmlFor="tx-card">
-            <select id="tx-card" className={inputClass} {...register('creditCardId')}>
-              <option value="">Nenhum</option>
-              {creditCards.map((card) => (
-                <option key={card.id} value={card.id}>
-                  {card.name}
-                </option>
-              ))}
-            </select>
+            <Controller
+              name="creditCardId"
+              control={control}
+              render={({ field }) => (
+                <SimpleSelect
+                  id="tx-card"
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  options={[{ value: '', label: 'Nenhum' }, ...creditCards.map((card) => ({ value: card.id, label: card.name }))]}
+                />
+              )}
+            />
           </Field>
         )}
       </div>

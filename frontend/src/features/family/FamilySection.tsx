@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
@@ -15,6 +15,7 @@ import { initials } from '../../lib/initials'
 import { useAuthStore } from '../../stores/authStore'
 import { createInvitation, getTenantSettings, listInvitations, listMembers, removeMember, updateTenantSettings, type MemberRole } from './api'
 import { CurrencySelect } from './CurrencySelect'
+import { RoleSelect } from './RoleSelect'
 
 const schema = z.object({
   email: z.string().email('e-mail inválido'),
@@ -72,6 +73,7 @@ export function FamilySection() {
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors },
@@ -131,12 +133,12 @@ export function FamilySection() {
             <Field label="E-mail do convidado" htmlFor="invite-email" error={errors.email?.message}>
               <input id="invite-email" type="email" className={inputClass} placeholder="pessoa@exemplo.com" {...register('email')} />
             </Field>
-            <Field label="Papel" htmlFor="invite-role" className="sm:w-40">
-              <select id="invite-role" className={inputClass} {...register('role')}>
-                <option value="ADMIN">Administrador</option>
-                <option value="MEMBER">Membro</option>
-                <option value="CHILD">Criança</option>
-              </select>
+            <Field label="Papel" htmlFor="invite-role" className="sm:w-48">
+              <Controller
+                name="role"
+                control={control}
+                render={({ field }) => <RoleSelect id="invite-role" value={field.value} onChange={field.onChange} />}
+              />
             </Field>
             <Button type="submit" loading={inviteMutation.isPending}>
               Convidar
