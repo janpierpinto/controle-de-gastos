@@ -1,5 +1,9 @@
 package com.controledegastos.reports.application;
 
+import com.controledegastos.bills.BillRecord;
+import com.controledegastos.bills.BillsQueryApi;
+import com.controledegastos.budgets.BudgetAlert;
+import com.controledegastos.budgets.BudgetsQueryApi;
 import com.controledegastos.categories.CategoriesQueryApi;
 import com.controledegastos.transactions.TransactionSummary;
 import com.controledegastos.transactions.TransactionsQueryApi;
@@ -41,18 +45,18 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 import java.util.UUID;
 import javax.imageio.ImageIO;
 import org.springframework.stereotype.Service;
 
 /**
- * Builds a self-contained, JPDigital-branded monthly PDF report (summary,
- * category breakdown, full transaction list) from data other modules
- * already expose — same cross-module query API convention as
- * InsightsService, no new coupling. The brand icon is rasterized at
- * generation time with Java2D (same paths/gradient as JpDigitalLogo.tsx)
- * rather than shipped as a static asset, so there's nothing to keep in sync
- * with the frontend by hand.
+ * Builds self-contained, JPDigital-branded PDF reports (monthly and annual)
+ * from data other modules already expose — same cross-module query API
+ * convention as InsightsService, no new coupling. The brand icon is
+ * rasterized at generation time with Java2D (same paths/gradient as
+ * JpDigitalLogo.tsx) rather than shipped as a static asset, so there's
+ * nothing to keep in sync with the frontend by hand.
  */
 @Service
 public class ReportService {
@@ -65,17 +69,25 @@ public class ReportService {
     private static final Color BRAND_VIOLET = new Color(124, 58, 237);
     private static final Color TEXT_DARK = new Color(15, 23, 42);
     private static final Color TEXT_MUTED = new Color(100, 116, 139);
-    private static final Color BORDER_COLOR = new Color(226, 232, 240);
     private static final Color ZEBRA_ROW_COLOR = new Color(248, 250, 252);
     private static final Color POSITIVE_COLOR = new Color(22, 163, 74);
     private static final Color NEGATIVE_COLOR = new Color(220, 38, 38);
+    private static final Color WARNING_COLOR = new Color(217, 119, 6);
 
     private final TransactionsQueryApi transactionsQueryApi;
     private final CategoriesQueryApi categoriesQueryApi;
+    private final BudgetsQueryApi budgetsQueryApi;
+    private final BillsQueryApi billsQueryApi;
 
-    public ReportService(TransactionsQueryApi transactionsQueryApi, CategoriesQueryApi categoriesQueryApi) {
+    public ReportService(
+            TransactionsQueryApi transactionsQueryApi,
+            CategoriesQueryApi categoriesQueryApi,
+            BudgetsQueryApi budgetsQueryApi,
+            BillsQueryApi billsQueryApi) {
         this.transactionsQueryApi = transactionsQueryApi;
         this.categoriesQueryApi = categoriesQueryApi;
+        this.budgetsQueryApi = budgetsQueryApi;
+        this.billsQueryApi = billsQueryApi;
     }
 
     public byte[] monthlyReport(LocalDate month) {
@@ -89,19 +101,133 @@ public class ReportService {
         var totalExpense = sumByType(transactions, "EXPENSE");
         var balance = totalIncome.subtract(totalExpense);
 
-        var expenseByCategory = new HashMap<UUID, BigDecimal>();
-        for (var transaction : transactions) {
-            if ("EXPENSE".equals(transaction.type()) && transaction.categoryId() != null) {
-                expenseByCategory.merge(transaction.categoryId(), transaction.amount(), BigDecimal::add);
-            }
-        }
-        var categoryRows = expenseByCategory.entrySet().stream()
-                .sorted(Map.Entry.<UUID, BigDecimal>comparingByValue().reversed())
-                .toList();
+        var expenseByCategory = totalsByCategory(transactions, "EXPENSE");
+        var incomeByCategory = totalsByCategory(transactions, "INCOME");
+        var expenseRows = sortedDesc(expenseByCategory);
+        var incomeRows = sortedDesc(incomeByCategory);
 
         var allCategoryIds = transactions.stream().map(TransactionSummary::categoryId).filter(Objects::nonNull).toList();
         var names = categoriesQueryApi.namesByIds(allCategoryIds);
 
+        var previousMonthStart = monthStart.minusMonths(1);
+        var previousMonthEnd = YearMonth.from(previousMonthStart).atEndOfMonth();
+        var previousTransactions = transactionsQueryApi.listInPeriod(previousMonthStart, previousMonthEnd);
+        var previousIncome = sumByType(previousTransactions, "INCOME");
+        var previousExpense = sumByType(previousTransactions, "EXPENSE");
+
+        var budgetAlerts = budgetsQueryApi.alertsForMonth(monthStart);
+        var budgetNames = categoriesQueryApi.namesByIds(budgetAlerts.stream().map(BudgetAlert::categoryId).toList());
+
+        var bills = billsQueryApi.billsDueBetween(monthStart, monthEnd);
+
+        var monthLabel = capitalize(monthStart.getMonth().getDisplayName(TextStyle.FULL, Locale.of("pt", "BR")))
+                + " de " + monthStart.getYear();
+
+        return render("Relatório financeiro mensal", monthLabel, document -> {
+            document.add(summaryTable(totalIncome, totalExpense, balance));
+            document.add(Chunk.NEWLINE);
+            document.add(Chunk.NEWLINE);
+
+            document.add(sectionTitle("Resumo rápido"));
+            document.add(quickStatsTable(transactions));
+            document.add(Chunk.NEWLINE);
+            document.add(Chunk.NEWLINE);
+
+            document.add(sectionTitle("Comparação com o mês anterior"));
+            document.add(comparisonTable(totalIncome, previousIncome, totalExpense, previousExpense));
+            document.add(Chunk.NEWLINE);
+            document.add(Chunk.NEWLINE);
+
+            if (!budgetAlerts.isEmpty()) {
+                document.add(sectionTitle("Orçamentos do mês"));
+                document.add(budgetsTable(budgetAlerts, budgetNames));
+                document.add(Chunk.NEWLINE);
+                document.add(Chunk.NEWLINE);
+            }
+
+            if (!incomeRows.isEmpty()) {
+                document.add(sectionTitle("Receitas por categoria"));
+                document.add(categoryTable(incomeRows, names, totalIncome));
+                document.add(Chunk.NEWLINE);
+                document.add(Chunk.NEWLINE);
+            }
+
+            document.add(sectionTitle("Gastos por categoria"));
+            document.add(categoryTable(expenseRows, names, totalExpense));
+            document.add(Chunk.NEWLINE);
+            document.add(Chunk.NEWLINE);
+
+            if (!bills.isEmpty()) {
+                document.add(sectionTitle("Contas do período"));
+                document.add(billsTable(bills));
+                document.add(Chunk.NEWLINE);
+                document.add(Chunk.NEWLINE);
+            }
+
+            document.add(sectionTitle("Transações do período (" + transactions.size() + ")"));
+            document.add(transactionsTable(transactions, names));
+        });
+    }
+
+    public byte[] annualReport(int year) {
+        var yearStart = LocalDate.of(year, 1, 1);
+        var yearEnd = LocalDate.of(year, 12, 31);
+        var transactions = transactionsQueryApi.listInPeriod(yearStart, yearEnd);
+
+        var monthlyTotals = new TreeMap<YearMonth, MonthTotals>();
+        for (var m = 1; m <= 12; m++) {
+            var month = YearMonth.of(year, m);
+            monthlyTotals.put(month, new MonthTotals(month, BigDecimal.ZERO, BigDecimal.ZERO));
+        }
+        for (var transaction : transactions) {
+            var month = YearMonth.from(transaction.occurredOn());
+            var current = monthlyTotals.get(month);
+            if (current == null) {
+                continue;
+            }
+            if ("INCOME".equals(transaction.type())) {
+                monthlyTotals.put(month, new MonthTotals(month, current.income().add(transaction.amount()), current.expense()));
+            } else if ("EXPENSE".equals(transaction.type())) {
+                monthlyTotals.put(month, new MonthTotals(month, current.income(), current.expense().add(transaction.amount())));
+            }
+        }
+
+        var totalIncome = monthlyTotals.values().stream().map(MonthTotals::income).reduce(BigDecimal.ZERO, BigDecimal::add);
+        var totalExpense = monthlyTotals.values().stream().map(MonthTotals::expense).reduce(BigDecimal.ZERO, BigDecimal::add);
+        var balance = totalIncome.subtract(totalExpense);
+
+        var expenseByCategory = totalsByCategory(transactions, "EXPENSE");
+        var expenseRows = sortedDesc(expenseByCategory);
+        var names = categoriesQueryApi.namesByIds(expenseByCategory.keySet());
+
+        var best = monthlyTotals.values().stream().max(Comparator.comparing(MonthTotals::balance));
+        var worst = monthlyTotals.values().stream().min(Comparator.comparing(MonthTotals::balance));
+
+        return render("Relatório financeiro anual", "Ano de " + year, document -> {
+            document.add(summaryTable(totalIncome, totalExpense, balance));
+            document.add(Chunk.NEWLINE);
+            document.add(Chunk.NEWLINE);
+
+            document.add(sectionTitle("Melhor e pior mês"));
+            document.add(bestWorstMonthTable(best, worst));
+            document.add(Chunk.NEWLINE);
+            document.add(Chunk.NEWLINE);
+
+            document.add(sectionTitle("Resumo por mês"));
+            document.add(monthlyBreakdownTable(monthlyTotals.values(), totalIncome, totalExpense, balance));
+            document.add(Chunk.NEWLINE);
+            document.add(Chunk.NEWLINE);
+
+            document.add(sectionTitle("Gastos por categoria no ano"));
+            document.add(categoryTable(expenseRows, names, totalExpense));
+        });
+    }
+
+    private interface DocumentBody {
+        void write(Document document) throws DocumentException;
+    }
+
+    private byte[] render(String title, String subtitle, DocumentBody body) {
         try {
             var output = new ByteArrayOutputStream();
             var document = new Document(PageSize.A4, 40, 40, 100, 56);
@@ -109,25 +235,12 @@ public class ReportService {
             writer.setPageEvent(new BrandedFooter());
             document.open();
 
-            var monthLabel = capitalize(monthStart.getMonth().getDisplayName(TextStyle.FULL, Locale.of("pt", "BR")))
-                    + " de " + monthStart.getYear();
-
-            document.add(header(monthLabel));
+            document.add(header(title, subtitle));
             document.add(Chunk.NEWLINE);
             document.add(divider());
             document.add(Chunk.NEWLINE);
 
-            document.add(summaryTable(totalIncome, totalExpense, balance));
-            document.add(Chunk.NEWLINE);
-            document.add(Chunk.NEWLINE);
-
-            document.add(sectionTitle("Gastos por categoria"));
-            document.add(categoryTable(categoryRows, names, totalExpense));
-            document.add(Chunk.NEWLINE);
-            document.add(Chunk.NEWLINE);
-
-            document.add(sectionTitle("Transações do período (" + transactions.size() + ")"));
-            document.add(transactionsTable(transactions, names));
+            body.write(document);
 
             document.close();
             return output.toByteArray();
@@ -136,7 +249,7 @@ public class ReportService {
         }
     }
 
-    private PdfPTable header(String monthLabel) throws DocumentException {
+    private PdfPTable header(String title, String subtitle) throws DocumentException {
         var table = new PdfPTable(new float[] {1, 2});
         table.setWidthPercentage(100);
 
@@ -160,10 +273,9 @@ public class ReportService {
         titleCell.setBorder(0);
         titleCell.setColspan(2);
         titleCell.setPaddingTop(14);
-        titleCell.addElement(new Paragraph("Relatório financeiro mensal", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18, TEXT_DARK)));
+        titleCell.addElement(new Paragraph(title, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18, TEXT_DARK)));
         titleCell.addElement(new Paragraph(
-                capitalize(monthLabel) + "  ·  Gerado em " + DATE_FORMAT.format(LocalDate.now()),
-                FontFactory.getFont(FontFactory.HELVETICA, 10, TEXT_MUTED)));
+                subtitle + "  ·  Gerado em " + DATE_FORMAT.format(LocalDate.now()), FontFactory.getFont(FontFactory.HELVETICA, 10, TEXT_MUTED)));
         table.addCell(titleCell);
 
         return table;
@@ -191,6 +303,20 @@ public class ReportService {
                 .filter(t -> type.equals(t.type()))
                 .map(TransactionSummary::amount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private Map<UUID, BigDecimal> totalsByCategory(List<TransactionSummary> transactions, String type) {
+        var totals = new HashMap<UUID, BigDecimal>();
+        for (var transaction : transactions) {
+            if (type.equals(transaction.type()) && transaction.categoryId() != null) {
+                totals.merge(transaction.categoryId(), transaction.amount(), BigDecimal::add);
+            }
+        }
+        return totals;
+    }
+
+    private List<Map.Entry<UUID, BigDecimal>> sortedDesc(Map<UUID, BigDecimal> totals) {
+        return totals.entrySet().stream().sorted(Map.Entry.<UUID, BigDecimal>comparingByValue().reversed()).toList();
     }
 
     private PdfPTable summaryTable(BigDecimal income, BigDecimal expense, BigDecimal balance) {
@@ -222,7 +348,191 @@ public class ReportService {
         return cell;
     }
 
-    private PdfPTable categoryTable(List<Map.Entry<UUID, BigDecimal>> rows, Map<UUID, String> names, BigDecimal totalExpense) {
+    private PdfPTable quickStatsTable(List<TransactionSummary> transactions) {
+        var expenses = transactions.stream().filter(t -> "EXPENSE".equals(t.type())).toList();
+        var averageExpense = expenses.isEmpty()
+                ? BigDecimal.ZERO
+                : expenses.stream().map(TransactionSummary::amount).reduce(BigDecimal.ZERO, BigDecimal::add)
+                        .divide(BigDecimal.valueOf(expenses.size()), 2, RoundingMode.HALF_UP);
+        var biggestExpense = expenses.stream().max(Comparator.comparing(TransactionSummary::amount));
+        var mostFrequentCategoryId = expenses.stream()
+                .filter(t -> t.categoryId() != null)
+                .collect(java.util.stream.Collectors.groupingBy(TransactionSummary::categoryId, java.util.stream.Collectors.counting()))
+                .entrySet()
+                .stream()
+                .max(Map.Entry.comparingByValue());
+        var mostFrequentName = mostFrequentCategoryId
+                .map(entry -> categoriesQueryApi.namesByIds(List.of(entry.getKey())).getOrDefault(entry.getKey(), "—"))
+                .orElse("—");
+
+        var table = new PdfPTable(4);
+        table.setWidthPercentage(100);
+        table.addCell(statCell("Transações", String.valueOf(transactions.size())));
+        table.addCell(statCell("Ticket médio (gastos)", money(averageExpense)));
+        table.addCell(statCell("Maior gasto", biggestExpense.map(t -> money(t.amount())).orElse("—")));
+        table.addCell(statCell("Categoria mais frequente", mostFrequentName));
+        return table;
+    }
+
+    private PdfPCell statCell(String label, String value) {
+        var cell = new PdfPCell();
+        cell.setPadding(10);
+        cell.setBorder(0);
+        var labelParagraph = new Paragraph(label, FontFactory.getFont(FontFactory.HELVETICA, 8, TEXT_MUTED));
+        labelParagraph.setSpacingAfter(3);
+        cell.addElement(labelParagraph);
+        cell.addElement(new Paragraph(value, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, TEXT_DARK)));
+        return cell;
+    }
+
+    private PdfPTable comparisonTable(BigDecimal income, BigDecimal previousIncome, BigDecimal expense, BigDecimal previousExpense) {
+        var table = new PdfPTable(new float[] {2, 1.3f, 1.3f, 1.2f});
+        table.setWidthPercentage(100);
+        addHeaderCell(table, "Métrica");
+        addHeaderCell(table, "Este mês");
+        addHeaderCell(table, "Mês anterior");
+        addHeaderCell(table, "Variação");
+
+        addComparisonRow(table, "Receitas", income, previousIncome, 0);
+        addComparisonRow(table, "Despesas", expense, previousExpense, 1);
+        return table;
+    }
+
+    private void addComparisonRow(PdfPTable table, String label, BigDecimal current, BigDecimal previous, int rowIndex) {
+        var zebra = zebraColor(rowIndex);
+        addBodyCell(table, label, TEXT_DARK, zebra);
+        addBodyCell(table, money(current), TEXT_DARK, zebra);
+        addBodyCell(table, money(previous), TEXT_MUTED, zebra);
+
+        String variationText;
+        Color variationColor;
+        if (previous.signum() == 0) {
+            variationText = current.signum() == 0 ? "—" : "novo";
+            variationColor = TEXT_MUTED;
+        } else {
+            var changePct = current.subtract(previous).multiply(BigDecimal.valueOf(100)).divide(previous, 0, RoundingMode.HALF_UP);
+            variationText = (changePct.signum() > 0 ? "+" : "") + changePct + "%";
+            variationColor = changePct.signum() > 0 ? NEGATIVE_COLOR : changePct.signum() < 0 ? POSITIVE_COLOR : TEXT_MUTED;
+        }
+        addBodyCell(table, variationText, variationColor, zebra);
+    }
+
+    private PdfPTable budgetsTable(List<BudgetAlert> alerts, Map<UUID, String> names) {
+        var table = new PdfPTable(new float[] {2.2f, 1.2f, 1.2f, 1, 1.3f});
+        table.setWidthPercentage(100);
+        addHeaderCell(table, "Categoria");
+        addHeaderCell(table, "Planejado");
+        addHeaderCell(table, "Gasto");
+        addHeaderCell(table, "% usado");
+        addHeaderCell(table, "Status");
+
+        var rowIndex = 0;
+        for (var alert : alerts) {
+            var zebra = zebraColor(rowIndex++);
+            var statusText = alert.exceeded() ? "Estourado" : alert.alertTriggered() ? "Atenção" : "Dentro do limite";
+            var statusColor = alert.exceeded() ? NEGATIVE_COLOR : alert.alertTriggered() ? WARNING_COLOR : POSITIVE_COLOR;
+            addBodyCell(table, names.getOrDefault(alert.categoryId(), "categoria"), TEXT_DARK, zebra);
+            addBodyCell(table, money(alert.plannedAmount()), TEXT_DARK, zebra);
+            addBodyCell(table, money(alert.spentAmount()), TEXT_DARK, zebra);
+            addBodyCell(table, alert.percentageUsed() + "%", TEXT_MUTED, zebra);
+            addBodyCell(table, statusText, statusColor, zebra);
+        }
+        return table;
+    }
+
+    private PdfPTable billsTable(List<BillRecord> bills) {
+        var table = new PdfPTable(new float[] {1.2f, 3, 1.3f, 1.3f});
+        table.setWidthPercentage(100);
+        addHeaderCell(table, "Vencimento");
+        addHeaderCell(table, "Descrição");
+        addHeaderCell(table, "Valor");
+        addHeaderCell(table, "Status");
+
+        var rowIndex = 0;
+        for (var bill : bills) {
+            var zebra = zebraColor(rowIndex++);
+            var statusText = switch (bill.status()) {
+                case "PAID" -> "Paga";
+                case "OVERDUE" -> "Atrasada";
+                default -> "Pendente";
+            };
+            var statusColor = switch (bill.status()) {
+                case "PAID" -> POSITIVE_COLOR;
+                case "OVERDUE" -> NEGATIVE_COLOR;
+                default -> WARNING_COLOR;
+            };
+            addBodyCell(table, DATE_FORMAT.format(bill.dueDate()), TEXT_DARK, zebra);
+            addBodyCell(table, bill.description(), TEXT_DARK, zebra);
+            addBodyCell(table, money(bill.amount()), TEXT_DARK, zebra);
+            addBodyCell(table, statusText, statusColor, zebra);
+        }
+        return table;
+    }
+
+    private PdfPTable bestWorstMonthTable(java.util.Optional<MonthTotals> best, java.util.Optional<MonthTotals> worst) {
+        var table = new PdfPTable(new float[] {1, 0.06f, 1});
+        table.setWidthPercentage(100);
+        table.addCell(monthHighlightCell("Melhor mês", best, POSITIVE_COLOR));
+        table.addCell(spacerCell());
+        table.addCell(monthHighlightCell("Pior mês", worst, NEGATIVE_COLOR));
+        return table;
+    }
+
+    private PdfPCell monthHighlightCell(String label, java.util.Optional<MonthTotals> monthTotals, Color valueColor) {
+        var cell = new PdfPCell();
+        cell.setPadding(12);
+        cell.setBorder(0);
+        cell.setBackgroundColor(ZEBRA_ROW_COLOR);
+        var labelParagraph = new Paragraph(label, FontFactory.getFont(FontFactory.HELVETICA, 10, TEXT_MUTED));
+        labelParagraph.setSpacingAfter(2);
+        cell.addElement(labelParagraph);
+        if (monthTotals.isEmpty()) {
+            cell.addElement(new Paragraph("—", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 13, TEXT_MUTED)));
+            return cell;
+        }
+        var value = monthTotals.get();
+        var monthName = capitalize(value.month().getMonth().getDisplayName(TextStyle.FULL, Locale.of("pt", "BR")));
+        cell.addElement(new Paragraph(monthName, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 13, TEXT_DARK)));
+        cell.addElement(new Paragraph("Saldo: " + money(value.balance()), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, valueColor)));
+        return cell;
+    }
+
+    private PdfPTable monthlyBreakdownTable(java.util.Collection<MonthTotals> months, BigDecimal totalIncome, BigDecimal totalExpense, BigDecimal totalBalance) {
+        var table = new PdfPTable(new float[] {1.6f, 1.2f, 1.2f, 1.2f});
+        table.setWidthPercentage(100);
+        addHeaderCell(table, "Mês");
+        addHeaderCell(table, "Receitas");
+        addHeaderCell(table, "Despesas");
+        addHeaderCell(table, "Saldo");
+
+        var rowIndex = 0;
+        for (var monthTotals : months) {
+            var zebra = zebraColor(rowIndex++);
+            var monthName = capitalize(monthTotals.month().getMonth().getDisplayName(TextStyle.FULL, Locale.of("pt", "BR")));
+            var balance = monthTotals.balance();
+            addBodyCell(table, monthName, TEXT_DARK, zebra);
+            addBodyCell(table, money(monthTotals.income()), POSITIVE_COLOR, zebra);
+            addBodyCell(table, money(monthTotals.expense()), NEGATIVE_COLOR, zebra);
+            addBodyCell(table, money(balance), balance.signum() >= 0 ? POSITIVE_COLOR : NEGATIVE_COLOR, zebra);
+        }
+
+        var totalCell1 = totalCell("Total do ano");
+        table.addCell(totalCell1);
+        table.addCell(totalCell(money(totalIncome)));
+        table.addCell(totalCell(money(totalExpense)));
+        table.addCell(totalCell(money(totalBalance)));
+        return table;
+    }
+
+    private PdfPCell totalCell(String text) {
+        var cell = new PdfPCell(new Phrase(text, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, TEXT_DARK)));
+        cell.setPadding(8);
+        cell.setBorder(0);
+        cell.setBackgroundColor(ZEBRA_ROW_COLOR);
+        return cell;
+    }
+
+    private PdfPTable categoryTable(List<Map.Entry<UUID, BigDecimal>> rows, Map<UUID, String> names, BigDecimal total) {
         var table = new PdfPTable(new float[] {3, 1.5f, 1});
         table.setWidthPercentage(100);
         addHeaderCell(table, "Categoria");
@@ -230,14 +540,14 @@ public class ReportService {
         addHeaderCell(table, "% do total");
 
         if (rows.isEmpty()) {
-            addEmptyRow(table, 3, "Nenhum gasto categorizado neste período.");
+            addEmptyRow(table, 3, "Nenhum lançamento categorizado neste período.");
         }
         var rowIndex = 0;
         for (var entry : rows) {
             var name = names.getOrDefault(entry.getKey(), "Sem categoria");
-            var pct = totalExpense.signum() == 0
+            var pct = total.signum() == 0
                     ? BigDecimal.ZERO
-                    : entry.getValue().multiply(BigDecimal.valueOf(100)).divide(totalExpense, 0, RoundingMode.HALF_UP);
+                    : entry.getValue().multiply(BigDecimal.valueOf(100)).divide(total, 0, RoundingMode.HALF_UP);
             var zebra = zebraColor(rowIndex++);
             addBodyCell(table, name, TEXT_DARK, zebra);
             addBodyCell(table, money(entry.getValue()), TEXT_DARK, zebra);
@@ -353,6 +663,12 @@ public class ReportService {
             path.lineTo(offset + points[i][0] * scale, offset + points[i][1] * scale);
         }
         return path;
+    }
+
+    private record MonthTotals(YearMonth month, BigDecimal income, BigDecimal expense) {
+        BigDecimal balance() {
+            return income.subtract(expense);
+        }
     }
 
     private static class BrandedFooter extends PdfPageEventHelper {

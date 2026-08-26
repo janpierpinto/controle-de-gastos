@@ -33,4 +33,12 @@ public class ReportController {
         headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
         return ResponseEntity.ok().headers(headers).contentType(MediaType.APPLICATION_PDF).body(pdf);
     }
+
+    @GetMapping(value = "/annual", produces = "application/pdf")
+    public ResponseEntity<byte[]> annual(@RequestParam int year) {
+        var pdf = reportService.annualReport(year);
+        var headers = new HttpHeaders();
+        headers.setContentDisposition(ContentDisposition.attachment().filename("relatorio-" + year + ".pdf").build());
+        return ResponseEntity.ok().headers(headers).contentType(MediaType.APPLICATION_PDF).body(pdf);
+    }
 }

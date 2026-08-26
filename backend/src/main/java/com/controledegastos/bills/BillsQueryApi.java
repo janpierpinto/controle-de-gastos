@@ -1,5 +1,6 @@
 package com.controledegastos.bills;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -9,4 +10,6 @@ import java.util.List;
 public interface BillsQueryApi {
 
     List<UpcomingBill> upcomingWithinDays(int days);
+
+    List<BillRecord> billsDueBetween(LocalDate from, LocalDate to);
 }

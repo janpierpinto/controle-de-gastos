@@ -1,5 +1,6 @@
 package com.controledegastos.bills.application;
 
+import com.controledegastos.bills.BillRecord;
 import com.controledegastos.bills.BillsQueryApi;
 import com.controledegastos.bills.UpcomingBill;
 import com.controledegastos.bills.domain.BillStatus;
@@ -61,6 +62,20 @@ public class BillService implements BillsQueryApi {
                         bill.getDueDate(),
                         ChronoUnit.DAYS.between(today, bill.getDueDate()),
                         bill.isOverdue()))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BillRecord> billsDueBetween(LocalDate from, LocalDate to) {
+        return billToPayRepository.findAllByOrderByDueDateAsc().stream()
+                .filter(bill -> !bill.getDueDate().isBefore(from) && !bill.getDueDate().isAfter(to))
+                .map(bill -> new BillRecord(
+                        bill.getId(),
+                        bill.getDescription(),
+                        bill.getAmount(),
+                        bill.getDueDate(),
+                        bill.getStatus() == BillStatus.PAID ? "PAID" : bill.isOverdue() ? "OVERDUE" : "PENDING"))
                 .toList();
     }
 }

@@ -65,7 +65,13 @@ public class BudgetService implements BudgetsQueryApi {
     @Override
     @Transactional(readOnly = true)
     public List<BudgetAlert> currentMonthAlerts() {
-        return list(LocalDate.now()).stream()
+        return alertsForMonth(LocalDate.now());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BudgetAlert> alertsForMonth(LocalDate month) {
+        return list(month).stream()
                 .map(progress -> {
                     var budget = progress.budget();
                     var spent = progress.spentAmount();

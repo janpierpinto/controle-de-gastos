@@ -1,5 +1,6 @@
 package com.controledegastos.budgets;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -9,4 +10,6 @@ import java.util.List;
 public interface BudgetsQueryApi {
 
     List<BudgetAlert> currentMonthAlerts();
+
+    List<BudgetAlert> alertsForMonth(LocalDate month);
 }
