@@ -106,6 +106,19 @@ export const TrashIcon = base(
 
 export const ChevronDownIcon = base(<polyline points="6 9 12 15 18 9" />)
 
+export const ChevronLeftIcon = base(<polyline points="15 18 9 12 15 6" />)
+
+export const ChevronRightIcon = base(<polyline points="9 18 15 12 9 6" />)
+
+export const CalendarIcon = base(
+  <>
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+    <line x1="16" y1="2" x2="16" y2="6" />
+    <line x1="8" y1="2" x2="8" y2="6" />
+    <line x1="3" y1="10" x2="21" y2="10" />
+  </>,
+)
+
 export const CheckIcon = base(<polyline points="20 6 9 17 4 12" />)
 
 export const LightbulbIcon = base(

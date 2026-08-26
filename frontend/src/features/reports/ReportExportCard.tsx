@@ -2,10 +2,12 @@ import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Button } from '../../components/ui/Button'
 import { Card, CardBody, CardHeader } from '../../components/ui/Card'
-import { inputClass, labelClass } from '../../components/ui/formStyles'
+import { labelClass } from '../../components/ui/formStyles'
 import { DownloadIcon, FileTextIcon } from '../../components/icons'
 import { currentMonthStart } from '../../lib/date'
 import { downloadAnnualReport, downloadMonthlyReport } from './api'
+import { MonthPicker } from './MonthPicker'
+import { YearPicker } from './YearPicker'
 
 const currentMonthValue = currentMonthStart().slice(0, 7)
 const currentYear = new Date().getFullYear()
@@ -26,18 +28,13 @@ export function ReportExportCard() {
       />
       <CardBody className="space-y-5">
         <div className="flex flex-wrap items-end gap-3">
-          <div>
+          <div className="w-48">
             <label htmlFor="report-month" className={labelClass}>
               Relatório mensal
             </label>
-            <input
-              id="report-month"
-              type="month"
-              className={`${inputClass} mt-1.5`}
-              value={month}
-              max={currentMonthValue}
-              onChange={(event) => setMonth(event.target.value)}
-            />
+            <div className="mt-1.5">
+              <MonthPicker id="report-month" value={month} onChange={setMonth} maxMonth={currentMonthValue} />
+            </div>
           </div>
           <Button type="button" variant="secondary" loading={monthlyMutation.isPending} onClick={() => monthlyMutation.mutate()}>
             <DownloadIcon className="h-4 w-4" /> Baixar mês
@@ -46,19 +43,13 @@ export function ReportExportCard() {
 
         <div className="border-t border-slate-100 pt-5 dark:border-slate-800">
           <div className="flex flex-wrap items-end gap-3">
-            <div>
+            <div className="w-32">
               <label htmlFor="report-year" className={labelClass}>
                 Relatório anual
               </label>
-              <input
-                id="report-year"
-                type="number"
-                className={`${inputClass} mt-1.5 w-28`}
-                value={year}
-                min={2000}
-                max={currentYear}
-                onChange={(event) => setYear(Number(event.target.value))}
-              />
+              <div className="mt-1.5">
+                <YearPicker id="report-year" value={year} onChange={setYear} maxYear={currentYear} />
+              </div>
             </div>
             <Button type="button" variant="secondary" loading={annualMutation.isPending} onClick={() => annualMutation.mutate()}>
               <DownloadIcon className="h-4 w-4" /> Baixar ano
