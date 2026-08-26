@@ -1,4 +1,4 @@
-import { ApiError } from '../../lib/apiClient'
+import { ApiError, redirectToLogin } from '../../lib/apiClient'
 import { useAuthStore } from '../../stores/authStore'
 
 async function downloadPdf(path: string, filename: string) {
@@ -8,6 +8,7 @@ async function downloadPdf(path: string, filename: string) {
   })
 
   if (!response.ok) {
+    if (response.status === 401) redirectToLogin()
     throw new ApiError(response.status, response.statusText)
   }
 
